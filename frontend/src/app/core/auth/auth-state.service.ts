@@ -1,10 +1,31 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, computed, signal } from "@angular/core";
+import type { AuthResponse, AuthenticatedUser } from "./auth.models";
+import {
+	clearStoredAuthState,
+	loadStoredAuthState,
+	persistAuthState,
+} from "./auth-storage";
 
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class AuthStateService {
-  readonly accessToken = signal<string | null>(null);
+	readonly accessToken = signal<string | null>(null);
+	readonly user = signal<AuthenticatedUser | null>(null);
+	readonly isAuthenticated = computed(() => !!this.accessToken());
 
-  setAccessToken(token: string | null): void {
-    this.accessToken.set(token);
-  }
+	hydrateFromStorage(): void {
+		const storedState = loadStoredAuthState();
+		this.accessToken.set(storedState?.accessToken ?? null);
+	}
+
+	setAuthenticatedSession(response: AuthResponse): void {
+		this.accessToken.set(response.accessToken);
+		this.user.set(response.user);
+		persistAuthState({ accessToken: response.accessToken });
+	}
+
+	clear(): void {
+		this.accessToken.set(null);
+		this.user.set(null);
+		clearStoredAuthState();
+	}
 }

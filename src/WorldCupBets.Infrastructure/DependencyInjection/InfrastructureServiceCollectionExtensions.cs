@@ -3,10 +3,12 @@ using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using WorldCupBets.Application.Abstractions;
+using WorldCupBets.Domain.Repositories;
 using WorldCupBets.Infrastructure.Authentication;
 using WorldCupBets.Infrastructure.Caching;
 using WorldCupBets.Infrastructure.Messaging;
 using WorldCupBets.Infrastructure.Persistence;
+using WorldCupBets.Infrastructure.Persistence.Repositories;
 
 namespace WorldCupBets.Infrastructure.DependencyInjection;
 
@@ -27,6 +29,8 @@ public static class InfrastructureServiceCollectionExtensions
             ?? "Host=localhost;Database=worldcupbets;Username=app;Password=placeholder";
 
         services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IRoleRepository, RoleRepository>();
         return services;
     }
 

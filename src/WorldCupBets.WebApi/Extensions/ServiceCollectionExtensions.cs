@@ -1,3 +1,4 @@
+using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using WorldCupBets.WebApi.Configuration;
@@ -11,6 +12,11 @@ public static class ServiceCollectionExtensions
         services.Configure<JwtOptions>(configuration.GetSection("Jwt"));
         services.Configure<GoogleOptions>(configuration.GetSection("Google"));
 
+        var jwtOptions = configuration.GetSection("Jwt").Get<JwtOptions>() ?? new JwtOptions();
+        var secret = string.IsNullOrWhiteSpace(jwtOptions.Secret)
+            ? throw new InvalidOperationException("Jwt:Secret must be configured.")
+            : jwtOptions.Secret;
+
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen();
         services.AddHealthChecks();
@@ -22,10 +28,14 @@ public static class ServiceCollectionExtensions
                 options.RequireHttpsMetadata = false;
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
-                    ValidateAudience = false,
-                    ValidateIssuer = false,
-                    ValidateIssuerSigningKey = false,
-                    ValidateLifetime = false
+                    ValidateAudience = true,
+                    ValidateIssuer = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidateLifetime = true,
+                    ValidIssuer = jwtOptions.Issuer,
+                    ValidAudience = jwtOptions.Audience,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret)),
+                    ClockSkew = TimeSpan.FromMinutes(1)
                 };
             });
 
@@ -35,7 +45,6 @@ public static class ServiceCollectionExtensions
             options.AddPolicy("Bettor", policy => policy.RequireRole("Admin", "Bettor"));
         });
 
-        // Wolverine, FluentValidation, and Mapster runtime wiring are deferred to later scaffold slices.
         return services;
     }
 }

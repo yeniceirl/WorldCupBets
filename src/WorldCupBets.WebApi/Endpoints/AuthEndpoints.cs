@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
-using WorldCupBets.Application.Abstractions;
+using Wolverine;
+using WorldCupBets.Application.Features.Auth;
+using WorldCupBets.Domain.Common;
 
 namespace WorldCupBets.WebApi.Endpoints;
 
@@ -9,23 +11,44 @@ public static class AuthEndpoints
     {
         var group = endpoints.MapGroup("/api/auth").WithTags("Auth");
 
-        group.MapPost("/google", [AllowAnonymous] (
+        group.MapPost("/google", [AllowAnonymous] async (
             GoogleLoginRequest request,
-            IGoogleTokenValidator validator,
-            IJwtTokenGenerator tokenGenerator) =>
+            IMessageBus messageBus,
+            CancellationToken cancellationToken) =>
         {
-            _ = request;
-            _ = validator;
-            _ = tokenGenerator;
+            if (string.IsNullOrWhiteSpace(request.IdToken))
+            {
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    [nameof(request.IdToken)] = ["Google ID token is required."]
+                });
+            }
 
-            return Results.Problem(
-                title: "Auth scaffold placeholder",
-                detail: "Google login is not implemented in this scaffold slice yet.",
-                statusCode: StatusCodes.Status501NotImplemented);
+            var result = await messageBus.InvokeAsync<Result<AuthResponseDto>>(
+                new GoogleLoginCommand(request.IdToken),
+                cancellationToken);
+
+            if (result.IsFailure)
+            {
+                return result.Error?.Code switch
+                {
+                    "auth.invalid_google_token" => Results.Unauthorized(),
+                    "auth.email_not_verified" => Results.Unauthorized(),
+                    "auth.role_not_found" => Results.Problem(
+                        title: "Authentication configuration error",
+                        detail: result.Error.Message,
+                        statusCode: StatusCodes.Status500InternalServerError),
+                    _ => Results.BadRequest(new { error = result.Error?.Message ?? "Authentication failed." })
+                };
+            }
+
+            return Results.Ok(result.Value);
         })
         .WithName("GoogleLogin")
-        .WithSummary("Scaffold-only Google auth placeholder.")
-        .Produces(StatusCodes.Status501NotImplemented);
+        .WithSummary("Exchange a Google ID token for a WorldCupBets JWT.")
+        .Produces<AuthResponseDto>(StatusCodes.Status200OK)
+        .ProducesValidationProblem(StatusCodes.Status400BadRequest)
+        .Produces(StatusCodes.Status401Unauthorized);
 
         return group;
     }

@@ -1,6 +1,6 @@
-namespace WorldCupBets.WebApi.Configuration;
+namespace WorldCupBets.Infrastructure.Authentication;
 
-public sealed class JwtOptions
+public sealed class JwtAuthOptions
 {
     public string Secret { get; init; } = string.Empty;
 

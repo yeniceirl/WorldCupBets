@@ -1,0 +1,22 @@
+# Local Pi runtime state
+.atl/
+
+# User/runtime files
+.gga
+.pi/
+prompt.md
+
+# .NET build outputs
+bin/
+obj/
+.vs/
+*.user
+*.suo
+*.nupkg
+
+# Node / frontend
+node_modules/
+dist/
+.angular/
+coverage/
+.pi-lens/

@@ -1,0 +1,9 @@
+.git
+.pi
+openspec
+frontend/node_modules
+frontend/dist
+src/**/bin
+src/**/obj
+**/bin
+**/obj

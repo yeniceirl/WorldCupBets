@@ -1,0 +1,2 @@
+-- Flyway repeatable placeholder for programmable SQL assets.
+-- Stored procedures, views, functions, and complex seed data will be added in later slices.

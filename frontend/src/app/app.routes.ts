@@ -7,6 +7,11 @@ export const appRoutes: Routes = [
 		redirectTo: "auth/login",
 	},
 	{
+		path: "auth",
+		pathMatch: "full",
+		redirectTo: "auth/login",
+	},
+	{
 		path: "auth/login",
 		loadComponent: () =>
 			import("./auth/login-page.component").then((m) => m.LoginPageComponent),

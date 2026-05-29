@@ -67,6 +67,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    environment:
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
     ports:
       - "4200:80"
     depends_on:

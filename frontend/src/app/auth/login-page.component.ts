@@ -1,39 +1,31 @@
 import {
 	type AfterViewInit,
 	Component,
+	DestroyRef,
 	type ElementRef,
 	ViewChild,
 	inject,
 } from "@angular/core";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { Router } from "@angular/router";
+import { AuthService } from "../core/auth/auth.service";
+import { GoogleIdentityService } from "../core/auth/google-identity.service";
 import { AuthStateService } from "../core/auth/auth-state.service";
 
 declare global {
 	interface Window {
-		google?: {
-			accounts: {
-				id: {
-					initialize(config: {
-						client_id: string;
-						callback: (response: { credential?: string }) => void;
-					}): void;
-					renderButton(
-						parent: HTMLElement,
-						options: Record<string, string | number>,
-					): void;
-				};
-			};
-		};
 		__env?: {
 			googleClientId?: string;
+			enableDevLogin?: boolean;
 		};
 	}
 }
 
 @Component({
 	selector: "app-login-page",
+	standalone: true,
 	template: `
-		<section class="mx-auto max-w-2xl rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+		<section class="mx-auto max-w-2xl rounded-2xl border border-slate-200 bg-white p-8 shadow-sm" data-testid="login-page">
 			<p class="text-sm font-medium uppercase tracking-wide text-sky-700">Sign in</p>
 			<h1 class="mt-2 text-3xl font-semibold">Google login</h1>
 			<p class="mt-4 text-sm text-slate-600">
@@ -53,7 +45,18 @@ declare global {
 			}
 
 			<div class="mt-6 flex flex-col gap-4">
-				<div #googleButtonContainer class="min-h-10"></div>
+				<div #googleButtonContainer class="min-h-10" data-testid="google-login-container"></div>
+				@if (isDevLoginEnabled) {
+					<button
+						type="button"
+						class="rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-800 transition hover:border-sky-400 hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
+						(click)="signInWithDevLogin()"
+						[disabled]="isDevLoginLoading"
+						data-testid="dev-login-button"
+					>
+						{{ isDevLoginLoading ? "Signing in..." : "Use development login" }}
+					</button>
+				}
 				<p class="text-xs text-slate-500">
 					The credential is kept in browser memory and forwarded to the callback route through router state,
 					not the URL.
@@ -63,7 +66,10 @@ declare global {
 	`,
 })
 export class LoginPageComponent implements AfterViewInit {
+	private readonly destroyRef = inject(DestroyRef);
 	private readonly router = inject(Router);
+	private readonly authService = inject(AuthService);
+	private readonly googleIdentityService = inject(GoogleIdentityService);
 	private readonly authState = inject(AuthStateService);
 
 	@ViewChild("googleButtonContainer", { static: true })
@@ -71,6 +77,8 @@ export class LoginPageComponent implements AfterViewInit {
 
 	isLoading = true;
 	errorMessage = "";
+	isDevLoginEnabled = window.__env?.enableDevLogin === true;
+	isDevLoginLoading = false;
 
 	constructor() {
 		if (this.authState.isAuthenticated()) {
@@ -78,21 +86,46 @@ export class LoginPageComponent implements AfterViewInit {
 		}
 	}
 
-	async ngAfterViewInit(): Promise<void> {
-		try {
-			const clientId = this.getGoogleClientId();
-			await this.loadGoogleIdentityScript();
+	signInWithDevLogin(): void {
+		this.errorMessage = "";
+		this.isDevLoginLoading = true;
 
-			const googleAccounts = window.google?.accounts.id;
+		this.authService.devLogin()
+			.pipe(takeUntilDestroyed(this.destroyRef))
+			.subscribe({
+				next: () => {
+					void this.router.navigateByUrl("/matches");
+				},
+				error: (error: { error?: { error?: string; detail?: string } }) => {
+					this.isDevLoginLoading = false;
+					this.errorMessage =
+						error.error?.error ??
+						error.error?.detail ??
+						"Development login failed.";
+				},
+			});
+	}
+
+	async ngAfterViewInit(): Promise<void> {
+		const clientId = this.getGoogleClientId();
+		if (!clientId) {
+			this.isLoading = false;
+			if (!this.isDevLoginEnabled) {
+				this.errorMessage = "Google Client ID is not configured for the frontend.";
+			}
+			return;
+		}
+
+		try {
 			const container = this.googleButtonContainer?.nativeElement;
-			if (!googleAccounts || !container) {
+			if (!container) {
 				throw new Error("Google Identity Services failed to initialize.");
 			}
 
-			container.replaceChildren();
-			googleAccounts.initialize({
-				client_id: clientId,
-				callback: ({ credential }) => {
+			await this.googleIdentityService.renderSignInButton(
+				clientId,
+				container,
+				({ credential }) => {
 					if (!credential) {
 						this.errorMessage = "Google did not return an ID token.";
 						return;
@@ -102,14 +135,7 @@ export class LoginPageComponent implements AfterViewInit {
 						state: { idToken: credential },
 					});
 				},
-			});
-			googleAccounts.renderButton(container, {
-				type: "standard",
-				theme: "outline",
-				size: "large",
-				shape: "pill",
-				text: "continue_with",
-			});
+			);
 
 			this.isLoading = false;
 		} catch (error) {
@@ -122,43 +148,6 @@ export class LoginPageComponent implements AfterViewInit {
 	}
 
 	private getGoogleClientId(): string {
-		const clientId = window.__env?.googleClientId;
-		if (!clientId) {
-			throw new Error("Google Client ID is not configured for the frontend.");
-		}
-
-		return clientId;
-	}
-
-	private async loadGoogleIdentityScript(): Promise<void> {
-		if (window.google?.accounts.id) {
-			return;
-		}
-
-		await new Promise<void>((resolve, reject) => {
-			const existingScript = document.querySelector<HTMLScriptElement>(
-				'script[src="https://accounts.google.com/gsi/client"]',
-			);
-			if (existingScript) {
-				existingScript.addEventListener("load", () => resolve(), {
-					once: true,
-				});
-				existingScript.addEventListener(
-					"error",
-					() => reject(new Error("Failed to load Google sign-in script.")),
-					{ once: true },
-				);
-				return;
-			}
-
-			const script = document.createElement("script");
-			script.src = "https://accounts.google.com/gsi/client";
-			script.async = true;
-			script.defer = true;
-			script.onload = () => resolve();
-			script.onerror = () =>
-				reject(new Error("Failed to load Google sign-in script."));
-			document.head.appendChild(script);
-		});
+		return window.__env?.googleClientId?.trim() ?? "";
 	}
 }

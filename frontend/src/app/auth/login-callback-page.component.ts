@@ -1,12 +1,14 @@
-import { Component, inject } from "@angular/core";
+import { Component, DestroyRef, OnInit, inject } from "@angular/core";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { Router } from "@angular/router";
 import { AuthService } from "../core/auth/auth.service";
 import { AuthStateService } from "../core/auth/auth-state.service";
 
 @Component({
 	selector: "app-login-callback-page",
+	standalone: true,
 	template: `
-		<section class="mx-auto max-w-2xl rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+		<section class="mx-auto max-w-2xl rounded-2xl border border-slate-200 bg-white p-8 shadow-sm" data-testid="login-callback-page">
 			<p class="text-sm font-medium uppercase tracking-wide text-sky-700">Google callback</p>
 			<h1 class="mt-2 text-3xl font-semibold">Signing you in</h1>
 			<p class="mt-4 text-sm text-slate-600">
@@ -38,7 +40,8 @@ import { AuthStateService } from "../core/auth/auth-state.service";
 		</section>
 	`,
 })
-export class LoginCallbackPageComponent {
+export class LoginCallbackPageComponent implements OnInit {
+	private readonly destroyRef = inject(DestroyRef);
 	private readonly router = inject(Router);
 	private readonly authService = inject(AuthService);
 	private readonly authState = inject(AuthStateService);
@@ -46,7 +49,7 @@ export class LoginCallbackPageComponent {
 	isLoading = true;
 	errorMessage = "";
 
-	constructor() {
+	ngOnInit(): void {
 		if (this.authState.isAuthenticated()) {
 			void this.router.navigateByUrl("/matches");
 			return;
@@ -60,18 +63,20 @@ export class LoginCallbackPageComponent {
 			return;
 		}
 
-		this.authService.exchangeGoogleToken(idToken).subscribe({
-			next: () => {
-				void this.router.navigateByUrl("/matches");
-			},
-			error: (error: { error?: { error?: string; detail?: string } }) => {
-				this.isLoading = false;
-				this.errorMessage =
-					error.error?.error ??
-					error.error?.detail ??
-					"The Google token exchange failed. Please try again.";
-			},
-		});
+		this.authService.exchangeGoogleToken(idToken)
+			.pipe(takeUntilDestroyed(this.destroyRef))
+			.subscribe({
+				next: () => {
+					void this.router.navigateByUrl("/matches");
+				},
+				error: (error: { error?: { error?: string; detail?: string } }) => {
+					this.isLoading = false;
+					this.errorMessage =
+						error.error?.error ??
+						error.error?.detail ??
+						"The Google token exchange failed. Please try again.";
+				},
+			});
 	}
 
 	goBack(): void {

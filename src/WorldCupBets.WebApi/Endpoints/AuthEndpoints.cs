@@ -1,7 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Hosting;
 using Wolverine;
+using WorldCupBets.Application.Abstractions;
 using WorldCupBets.Application.Features.Auth;
 using WorldCupBets.Domain.Common;
+using WorldCupBets.Domain.Entities;
+using WorldCupBets.Domain.Repositories;
 
 namespace WorldCupBets.WebApi.Endpoints;
 
@@ -50,8 +54,67 @@ public static class AuthEndpoints
         .ProducesValidationProblem(StatusCodes.Status400BadRequest)
         .Produces(StatusCodes.Status401Unauthorized);
 
+        group.MapPost("/dev-login", [AllowAnonymous] async (
+            DevLoginRequest request,
+            IHostEnvironment hostEnvironment,
+            IUserRepository userRepository,
+            IRoleRepository roleRepository,
+            IJwtTokenGenerator jwtTokenGenerator,
+            CancellationToken cancellationToken) =>
+        {
+            if (!hostEnvironment.IsDevelopment())
+            {
+                return Results.NotFound();
+            }
+
+            var googleSubject = string.IsNullOrWhiteSpace(request.GoogleSubject)
+                ? "dev-bettor"
+                : request.GoogleSubject.Trim();
+            var email = string.IsNullOrWhiteSpace(request.Email)
+                ? "dev-bettor@worldcupbets.local"
+                : request.Email.Trim();
+            var displayName = string.IsNullOrWhiteSpace(request.DisplayName)
+                ? "Dev Bettor"
+                : request.DisplayName.Trim();
+
+            var user = await userRepository.GetByGoogleSubjectWithRolesAsync(googleSubject, cancellationToken);
+            if (user is null)
+            {
+                var bettorRole = await roleRepository.GetByNameAsync("Bettor", cancellationToken);
+                if (bettorRole is null)
+                {
+                    return Results.Problem(
+                        title: "Authentication configuration error",
+                        detail: "The Bettor role is not configured.",
+                        statusCode: StatusCodes.Status500InternalServerError);
+                }
+
+                user = User.Create(googleSubject, email, displayName);
+                user.UserRoles.Add(UserRole.Create(user, bettorRole));
+                await userRepository.AddAsync(user, cancellationToken);
+                await userRepository.SaveChangesAsync(cancellationToken);
+            }
+
+            var roles = user.UserRoles.Select(userRole => userRole.Role.Name).Distinct(StringComparer.Ordinal).ToArray();
+            var accessToken = jwtTokenGenerator.GenerateAccessToken(new AuthTokenContext(
+                user.Id,
+                user.Email,
+                user.DisplayName,
+                roles));
+
+            return Results.Ok(new AuthResponseDto(
+                accessToken,
+                new AuthenticatedUserDto(user.Id, user.Email, user.DisplayName, roles)));
+        })
+        .WithName("DevLogin")
+        .WithSummary("Development-only login shortcut for local E2E and manual testing.")
+        .Produces<AuthResponseDto>(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status404NotFound);
+
         return group;
     }
 }
 
 public sealed record GoogleLoginRequest(string IdToken);
+
+public sealed record DevLoginRequest(string? DisplayName, string? Email, string? GoogleSubject);

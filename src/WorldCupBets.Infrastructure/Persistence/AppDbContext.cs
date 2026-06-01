@@ -7,6 +7,12 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 {
     public DbSet<LookupItem> LookupItems => Set<LookupItem>();
 
+    public DbSet<ChampionBet> ChampionBets => Set<ChampionBet>();
+
+    public DbSet<Match> Matches => Set<Match>();
+
+    public DbSet<MatchBet> MatchBets => Set<MatchBet>();
+
     public DbSet<Role> Roles => Set<Role>();
 
     public DbSet<User> Users => Set<User>();

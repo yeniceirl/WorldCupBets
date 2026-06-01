@@ -3,14 +3,16 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace WorldCupBets.Infrastructure.Persistence.Migrations;
 
 [DbContext(typeof(AppDbContext))]
-public partial class AppDbContextModelSnapshot : ModelSnapshot
+[Migration("20260531153000_AddMatches")]
+public partial class AddMatches
 {
-    protected override void BuildModel(ModelBuilder modelBuilder)
+    protected override void BuildTargetModel(ModelBuilder modelBuilder)
     {
 #pragma warning disable 612, 618
         modelBuilder
@@ -18,35 +20,6 @@ public partial class AppDbContextModelSnapshot : ModelSnapshot
             .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
         NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
-
-        modelBuilder.Entity("WorldCupBets.Domain.Entities.ChampionBet", b =>
-            {
-                b.Property<int>("Id")
-                    .ValueGeneratedOnAdd()
-                    .HasColumnType("integer")
-                    .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
-
-                b.Property<DateTime>("PlacedAtUtc")
-                    .HasColumnType("timestamp with time zone");
-
-                b.Property<int>("StakeAmountCc")
-                    .HasColumnType("integer");
-
-                b.Property<string>("TeamName")
-                    .IsRequired()
-                    .HasMaxLength(100)
-                    .HasColumnType("character varying(100)");
-
-                b.Property<int>("UserId")
-                    .HasColumnType("integer");
-
-                b.HasKey("Id");
-
-                b.HasIndex("UserId")
-                    .IsUnique();
-
-                b.ToTable("champion_bets", (string)null);
-            });
 
         modelBuilder.Entity("WorldCupBets.Domain.Entities.LookupItem", b =>
             {
@@ -108,13 +81,13 @@ public partial class AppDbContextModelSnapshot : ModelSnapshot
                     .HasMaxLength(100)
                     .HasColumnType("character varying(100)");
 
-                b.Property<WorldCupBets.Domain.Entities.MatchPhase>("Phase")
-                    .HasColumnType("character varying(32)")
-                    .HasColumnName("stage")
-                    .HasMaxLength(32);
-
                 b.Property<DateTime>("StartsAtUtc")
                     .HasColumnType("timestamp with time zone");
+
+                b.Property<string>("Stage")
+                    .IsRequired()
+                    .HasMaxLength(100)
+                    .HasColumnType("character varying(100)");
 
                 b.Property<string>("Venue")
                     .IsRequired()
@@ -131,7 +104,7 @@ public partial class AppDbContextModelSnapshot : ModelSnapshot
                         Id = 1,
                         AwayTeamName = "Japan",
                         HomeTeamName = "Argentina",
-                        Phase = WorldCupBets.Domain.Entities.MatchPhase.GroupStage,
+                        Stage = "Group Stage",
                         StartsAtUtc = new DateTime(2026, 6, 14, 18, 0, 0, DateTimeKind.Utc),
                         Venue = "MetLife Stadium"
                     },
@@ -140,7 +113,7 @@ public partial class AppDbContextModelSnapshot : ModelSnapshot
                         Id = 2,
                         AwayTeamName = "Mexico",
                         HomeTeamName = "Spain",
-                        Phase = WorldCupBets.Domain.Entities.MatchPhase.GroupStage,
+                        Stage = "Group Stage",
                         StartsAtUtc = new DateTime(2026, 6, 15, 21, 0, 0, DateTimeKind.Utc),
                         Venue = "Estadio Akron"
                     },
@@ -149,43 +122,10 @@ public partial class AppDbContextModelSnapshot : ModelSnapshot
                         Id = 3,
                         AwayTeamName = "France",
                         HomeTeamName = "United States",
-                        Phase = WorldCupBets.Domain.Entities.MatchPhase.GroupStage,
+                        Stage = "Group Stage",
                         StartsAtUtc = new DateTime(2026, 6, 16, 1, 0, 0, DateTimeKind.Utc),
                         Venue = "AT&T Stadium"
                     });
-            });
-
-        modelBuilder.Entity("WorldCupBets.Domain.Entities.MatchBet", b =>
-            {
-                b.Property<int>("Id")
-                    .ValueGeneratedOnAdd()
-                    .HasColumnType("integer")
-                    .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
-
-                b.Property<int>("MatchId")
-                    .HasColumnType("integer");
-
-                b.Property<DateTime>("PlacedAtUtc")
-                    .HasColumnType("timestamp with time zone");
-
-                b.Property<WorldCupBets.Domain.Entities.MatchBetSelection>("Selection")
-                    .HasColumnType("character varying(16)")
-                    .HasMaxLength(16);
-
-                b.Property<int>("StakeAmountCc")
-                    .HasColumnType("integer");
-
-                b.Property<int>("UserId")
-                    .HasColumnType("integer");
-
-                b.HasKey("Id");
-
-                b.HasIndex("MatchId");
-
-                b.HasIndex("UserId", "MatchId")
-                    .IsUnique();
-
-                b.ToTable("match_bets", (string)null);
             });
 
         modelBuilder.Entity("WorldCupBets.Domain.Entities.Role", b =>
@@ -227,9 +167,6 @@ public partial class AppDbContextModelSnapshot : ModelSnapshot
                     .HasColumnType("integer")
                     .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
 
-                b.Property<int>("CurrentBalanceCc")
-                    .HasColumnType("integer");
-
                 b.Property<string>("DisplayName")
                     .IsRequired()
                     .HasMaxLength(200)
@@ -244,12 +181,6 @@ public partial class AppDbContextModelSnapshot : ModelSnapshot
                     .IsRequired()
                     .HasMaxLength(200)
                     .HasColumnType("character varying(200)");
-
-                b.Property<int>("RescueCount")
-                    .HasColumnType("integer");
-
-                b.Property<int>("RescueDebtCc")
-                    .HasColumnType("integer");
 
                 b.HasKey("Id");
 
@@ -275,36 +206,6 @@ public partial class AppDbContextModelSnapshot : ModelSnapshot
                 b.HasIndex("RoleId");
 
                 b.ToTable("user_roles", (string)null);
-            });
-
-        modelBuilder.Entity("WorldCupBets.Domain.Entities.ChampionBet", b =>
-            {
-                b.HasOne("WorldCupBets.Domain.Entities.User", "User")
-                    .WithMany()
-                    .HasForeignKey("UserId")
-                    .OnDelete(DeleteBehavior.Cascade)
-                    .IsRequired();
-
-                b.Navigation("User");
-            });
-
-        modelBuilder.Entity("WorldCupBets.Domain.Entities.MatchBet", b =>
-            {
-                b.HasOne("WorldCupBets.Domain.Entities.Match", "Match")
-                    .WithMany()
-                    .HasForeignKey("MatchId")
-                    .OnDelete(DeleteBehavior.Cascade)
-                    .IsRequired();
-
-                b.HasOne("WorldCupBets.Domain.Entities.User", "User")
-                    .WithMany()
-                    .HasForeignKey("UserId")
-                    .OnDelete(DeleteBehavior.Cascade)
-                    .IsRequired();
-
-                b.Navigation("Match");
-
-                b.Navigation("User");
             });
 
         modelBuilder.Entity("WorldCupBets.Domain.Entities.UserRole", b =>

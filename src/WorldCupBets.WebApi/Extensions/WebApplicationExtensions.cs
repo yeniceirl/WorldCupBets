@@ -29,6 +29,9 @@ public static class WebApplicationExtensions
     {
         app.MapHealthChecks("/health").AllowAnonymous();
         app.MapAuthEndpoints();
+        app.MapMeEndpoints();
+        app.MapMatchesEndpoints();
+        app.MapBetsEndpoints();
         return app;
     }
 }

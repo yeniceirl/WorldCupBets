@@ -14,6 +14,11 @@ public sealed class UserRepository(AppDbContext dbContext) : IUserRepository
             .SingleOrDefaultAsync(user => user.GoogleSubject == googleSubject, cancellationToken);
     }
 
+    public Task<User?> GetByIdAsync(int userId, CancellationToken cancellationToken = default)
+    {
+        return dbContext.Users.SingleOrDefaultAsync(user => user.Id == userId, cancellationToken);
+    }
+
     public Task AddAsync(User user, CancellationToken cancellationToken = default)
     {
         return dbContext.Users.AddAsync(user, cancellationToken).AsTask();

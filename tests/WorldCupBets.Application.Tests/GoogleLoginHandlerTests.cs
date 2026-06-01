@@ -34,6 +34,7 @@ public sealed class GoogleLoginHandlerTests
         Assert.NotNull(result.Value);
         Assert.Single(userRepository.Users);
         Assert.Equal("google-123", userRepository.Users[0].GoogleSubject);
+        Assert.Equal(User.InitialBalanceCc, userRepository.Users[0].CurrentBalanceCc);
         Assert.Contains("Bettor", result.Value!.User.Roles);
         Assert.Equal(result.Value.AccessToken, tokenGenerator.LastToken);
     }
@@ -68,6 +69,7 @@ public sealed class GoogleLoginHandlerTests
         Assert.Single(userRepository.Users);
         Assert.Equal(0, userRepository.AddCalls);
         Assert.Equal(42, result.Value!.User.Id);
+        Assert.Equal(User.InitialBalanceCc, existingUser.CurrentBalanceCc);
         Assert.Contains("Bettor", result.Value.User.Roles);
     }
 
@@ -109,6 +111,11 @@ public sealed class GoogleLoginHandlerTests
             return Task.FromResult(Users.SingleOrDefault(user => user.GoogleSubject == googleSubject));
         }
 
+        public Task<User?> GetByIdAsync(int userId, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(Users.SingleOrDefault(user => user.Id == userId));
+        }
+
         public Task AddAsync(User user, CancellationToken cancellationToken = default)
         {
             AddCalls++;
@@ -131,5 +138,29 @@ public sealed class GoogleLoginHandlerTests
         {
             return Task.FromResult(seededRoles.SingleOrDefault(role => role.Name == name));
         }
+    }
+
+    [Fact]
+    public void Create_Tracks_Dead_Rescue_State()
+    {
+        var user = User.Create("google-999", "grace@example.com", "Grace Hopper");
+
+        Assert.False(user.CanReceiveDeadRescue());
+
+        SetProperty(user, nameof(User.CurrentBalanceCc), 0);
+
+        Assert.True(user.CanReceiveDeadRescue());
+
+        user.ApplyDeadRescue();
+
+        Assert.Equal(User.DeadRescueAmountCc, user.CurrentBalanceCc);
+        Assert.Equal(1, user.RescueCount);
+        Assert.Equal(User.DeadRescueAmountCc, user.RescueDebtCc);
+    }
+
+    private static void SetProperty(object target, string propertyName, object? value)
+    {
+        var property = target.GetType().GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        property!.SetValue(target, value);
     }
 }

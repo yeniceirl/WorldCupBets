@@ -1,0 +1,135 @@
+using System.Security.Claims;
+using Wolverine;
+using WorldCupBets.Application.Features.Bets;
+using WorldCupBets.Domain.Common;
+using WorldCupBets.Domain.Entities;
+
+namespace WorldCupBets.WebApi.Endpoints;
+
+public static class BetsEndpoints
+{
+    public static RouteGroupBuilder MapBetsEndpoints(this IEndpointRouteBuilder endpoints)
+    {
+        var group = endpoints.MapGroup("/api/bets")
+            .WithTags("Bets")
+            .RequireAuthorization("Bettor");
+
+        group.MapPost("/matches", async (
+            PlaceMatchBetRequest request,
+            ClaimsPrincipal user,
+            IMessageBus messageBus,
+            CancellationToken cancellationToken) =>
+        {
+            if (!int.TryParse(user.FindFirstValue("sub"), out var userId))
+            {
+                return Results.Unauthorized();
+            }
+
+            if (!Enum.TryParse<MatchBetSelection>(request.Selection, true, out var selection))
+            {
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    [nameof(request.Selection)] = ["Selection must be one of: Home, Draw, Away."]
+                });
+            }
+
+            var result = await messageBus.InvokeAsync<Result<PlaceMatchBetResultDto>>(
+                new PlaceMatchBetCommand(userId, request.MatchId, selection),
+                cancellationToken);
+
+            if (result.IsFailure)
+            {
+                return result.Error?.Code switch
+                {
+                    "bets.match_not_found" => Results.NotFound(),
+                    "bets.match_bet_already_exists" => Results.Conflict(new { error = result.Error.Message }),
+                    "bets.match_betting_closed" => Results.BadRequest(new { error = result.Error.Message }),
+                    "bets.insufficient_balance" => Results.BadRequest(new { error = result.Error.Message }),
+                    "bets.user_not_found" => Results.Unauthorized(),
+                    _ => Results.BadRequest(new { error = result.Error?.Message ?? "The match bet could not be placed." })
+                };
+            }
+
+            return Results.Ok(result.Value);
+        })
+        .WithName("PlaceMatchBet")
+        .WithSummary("Place a winner bet for a match as the authenticated bettor.")
+        .Produces<PlaceMatchBetResultDto>(StatusCodes.Status200OK)
+        .ProducesValidationProblem(StatusCodes.Status400BadRequest)
+        .Produces(StatusCodes.Status401Unauthorized)
+        .Produces(StatusCodes.Status404NotFound)
+        .Produces(StatusCodes.Status409Conflict);
+
+        group.MapGet("/champion", async (
+            ClaimsPrincipal user,
+            IMessageBus messageBus,
+            CancellationToken cancellationToken) =>
+        {
+            if (!int.TryParse(user.FindFirstValue("sub"), out var userId))
+            {
+                return Results.Unauthorized();
+            }
+
+            var result = await messageBus.InvokeAsync<ChampionBetMarketDto>(
+                new GetChampionBetMarketQuery(userId),
+                cancellationToken);
+
+            return Results.Ok(result);
+        })
+        .WithName("GetChampionBetMarket")
+        .WithSummary("Get champion bet options, closing metadata, and the current bettor selection.")
+        .Produces<ChampionBetMarketDto>(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status401Unauthorized);
+
+        group.MapPost("/champion", async (
+            PlaceChampionBetRequest request,
+            ClaimsPrincipal user,
+            IMessageBus messageBus,
+            CancellationToken cancellationToken) =>
+        {
+            if (!int.TryParse(user.FindFirstValue("sub"), out var userId))
+            {
+                return Results.Unauthorized();
+            }
+
+            if (string.IsNullOrWhiteSpace(request.TeamName))
+            {
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    [nameof(request.TeamName)] = ["Team name is required."]
+                });
+            }
+
+            var result = await messageBus.InvokeAsync<Result<PlaceChampionBetResultDto>>(
+                new PlaceChampionBetCommand(userId, request.TeamName.Trim()),
+                cancellationToken);
+
+            if (result.IsFailure)
+            {
+                return result.Error?.Code switch
+                {
+                    "bets.invalid_champion_team" => Results.BadRequest(new { error = result.Error.Message }),
+                    "bets.champion_betting_closed" => Results.BadRequest(new { error = result.Error.Message }),
+                    "bets.insufficient_balance" => Results.BadRequest(new { error = result.Error.Message }),
+                    "bets.champion_bet_already_exists" => Results.Conflict(new { error = result.Error.Message }),
+                    "bets.user_not_found" => Results.Unauthorized(),
+                    _ => Results.BadRequest(new { error = result.Error?.Message ?? "The champion bet could not be placed." })
+                };
+            }
+
+            return Results.Ok(result.Value);
+        })
+        .WithName("PlaceChampionBet")
+        .WithSummary("Place a champion bet as the authenticated bettor.")
+        .Produces<PlaceChampionBetResultDto>(StatusCodes.Status200OK)
+        .ProducesValidationProblem(StatusCodes.Status400BadRequest)
+        .Produces(StatusCodes.Status401Unauthorized)
+        .Produces(StatusCodes.Status409Conflict);
+
+        return group;
+    }
+}
+
+public sealed record PlaceMatchBetRequest(int MatchId, string Selection);
+
+public sealed record PlaceChampionBetRequest(string TeamName);

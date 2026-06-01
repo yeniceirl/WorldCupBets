@@ -1,4 +1,5 @@
 import type { Routes } from "@angular/router";
+import { authGuard } from "./core/auth/auth.guard";
 
 export const appRoutes: Routes = [
 	{
@@ -25,6 +26,7 @@ export const appRoutes: Routes = [
 	},
 	{
 		path: "matches",
+		canActivate: [authGuard],
 		loadComponent: () =>
 			import("./features/matches/matches-page.component").then(
 				(m) => m.MatchesPageComponent,
@@ -32,6 +34,7 @@ export const appRoutes: Routes = [
 	},
 	{
 		path: "bets",
+		canActivate: [authGuard],
 		loadComponent: () =>
 			import("./features/bets/bets-page.component").then(
 				(m) => m.BetsPageComponent,
@@ -39,6 +42,7 @@ export const appRoutes: Routes = [
 	},
 	{
 		path: "leaderboard",
+		canActivate: [authGuard],
 		loadComponent: () =>
 			import("./features/leaderboard/leaderboard-page.component").then(
 				(m) => m.LeaderboardPageComponent,
@@ -46,6 +50,7 @@ export const appRoutes: Routes = [
 	},
 	{
 		path: "admin",
+		canActivate: [authGuard],
 		loadComponent: () =>
 			import("./features/admin/admin-page.component").then(
 				(m) => m.AdminPageComponent,

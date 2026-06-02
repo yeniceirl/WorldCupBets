@@ -11,7 +11,7 @@ public sealed class MatchConfiguration : IEntityTypeConfiguration<Match>
         builder.ToTable("matches");
         builder.HasKey(match => match.Id);
         builder.Property(match => match.Phase)
-            .HasColumnName("stage")
+            .HasColumnName("Stage")
             .HasConversion<string>()
             .HasMaxLength(32)
             .IsRequired();

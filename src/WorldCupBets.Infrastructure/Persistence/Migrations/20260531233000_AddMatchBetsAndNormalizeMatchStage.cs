@@ -14,7 +14,7 @@ public partial class AddMatchBetsAndNormalizeMatchStage : Migration
     {
         migrationBuilder.Sql("""
             UPDATE matches
-            SET stage = CASE stage
+            SET "Stage" = CASE "Stage"
                 WHEN 'Group Stage' THEN 'GroupStage'
                 WHEN 'Round of 32' THEN 'RoundOf32'
                 WHEN 'Round of 16' THEN 'RoundOf16'
@@ -22,12 +22,12 @@ public partial class AddMatchBetsAndNormalizeMatchStage : Migration
                 WHEN 'Semifinals' THEN 'Semifinals'
                 WHEN 'Third Place' THEN 'ThirdPlace'
                 WHEN 'Final' THEN 'Final'
-                ELSE stage
+                ELSE "Stage"
             END;
             """);
 
         migrationBuilder.AlterColumn<string>(
-            name: "stage",
+            name: "Stage",
             table: "matches",
             type: "character varying(32)",
             maxLength: 32,
@@ -82,7 +82,7 @@ public partial class AddMatchBetsAndNormalizeMatchStage : Migration
         migrationBuilder.DropTable(name: "match_bets");
 
         migrationBuilder.AlterColumn<string>(
-            name: "stage",
+            name: "Stage",
             table: "matches",
             type: "character varying(100)",
             maxLength: 100,
@@ -93,7 +93,7 @@ public partial class AddMatchBetsAndNormalizeMatchStage : Migration
 
         migrationBuilder.Sql("""
             UPDATE matches
-            SET stage = CASE stage
+            SET "Stage" = CASE "Stage"
                 WHEN 'GroupStage' THEN 'Group Stage'
                 WHEN 'RoundOf32' THEN 'Round of 32'
                 WHEN 'RoundOf16' THEN 'Round of 16'
@@ -101,7 +101,7 @@ public partial class AddMatchBetsAndNormalizeMatchStage : Migration
                 WHEN 'Semifinals' THEN 'Semifinals'
                 WHEN 'ThirdPlace' THEN 'Third Place'
                 WHEN 'Final' THEN 'Final'
-                ELSE stage
+                ELSE "Stage"
             END;
             """);
     }

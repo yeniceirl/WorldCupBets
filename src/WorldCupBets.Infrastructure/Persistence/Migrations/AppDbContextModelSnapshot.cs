@@ -110,7 +110,7 @@ public partial class AppDbContextModelSnapshot : ModelSnapshot
 
                 b.Property<WorldCupBets.Domain.Entities.MatchPhase>("Phase")
                     .HasColumnType("character varying(32)")
-                    .HasColumnName("stage")
+                    .HasColumnName("Stage")
                     .HasMaxLength(32);
 
                 b.Property<DateTime>("StartsAtUtc")

@@ -17,6 +17,7 @@ public sealed class JwtTokenGenerator(IConfiguration configuration) : IJwtTokenG
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, context.UserId.ToString()),
+            new(ClaimTypes.NameIdentifier, context.UserId.ToString()),
             new(JwtRegisteredClaimNames.Email, context.Email),
             new(JwtRegisteredClaimNames.Name, context.DisplayName)
         };
@@ -42,9 +43,17 @@ public sealed class JwtTokenGenerator(IConfiguration configuration) : IJwtTokenG
 
     private static string GetSecret(JwtAuthOptions options)
     {
-        return string.IsNullOrWhiteSpace(options.Secret)
-            ? throw new InvalidOperationException("Jwt:Secret must be configured.")
-            : options.Secret;
+        if (string.IsNullOrWhiteSpace(options.Secret))
+        {
+            throw new InvalidOperationException("Jwt:Secret must be configured.");
+        }
+
+        if (Encoding.UTF8.GetByteCount(options.Secret) < 32)
+        {
+            throw new InvalidOperationException("Jwt:Secret must be at least 32 UTF-8 bytes for HS256 signing.");
+        }
+
+        return options.Secret;
     }
 
     private JwtAuthOptions GetOptions()

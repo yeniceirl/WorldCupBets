@@ -20,7 +20,10 @@ public static class BetsEndpoints
             IMessageBus messageBus,
             CancellationToken cancellationToken) =>
         {
-            if (!int.TryParse(user.FindFirstValue("sub"), out var userId))
+            var userIdValue = user.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? user.FindFirstValue("sub");
+
+            if (!int.TryParse(userIdValue, out var userId))
             {
                 return Results.Unauthorized();
             }
@@ -65,7 +68,10 @@ public static class BetsEndpoints
             IMessageBus messageBus,
             CancellationToken cancellationToken) =>
         {
-            if (!int.TryParse(user.FindFirstValue("sub"), out var userId))
+            var userIdValue = user.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? user.FindFirstValue("sub");
+
+            if (!int.TryParse(userIdValue, out var userId))
             {
                 return Results.Unauthorized();
             }
@@ -87,7 +93,10 @@ public static class BetsEndpoints
             IMessageBus messageBus,
             CancellationToken cancellationToken) =>
         {
-            if (!int.TryParse(user.FindFirstValue("sub"), out var userId))
+            var userIdValue = user.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? user.FindFirstValue("sub");
+
+            if (!int.TryParse(userIdValue, out var userId))
             {
                 return Results.Unauthorized();
             }

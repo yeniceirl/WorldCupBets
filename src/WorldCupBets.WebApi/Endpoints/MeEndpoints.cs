@@ -18,7 +18,10 @@ public static class MeEndpoints
             IMessageBus messageBus,
             CancellationToken cancellationToken) =>
         {
-            if (!int.TryParse(user.FindFirstValue("sub"), out var userId))
+            var userIdValue = user.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? user.FindFirstValue("sub");
+
+            if (!int.TryParse(userIdValue, out var userId))
             {
                 return Results.Unauthorized();
             }

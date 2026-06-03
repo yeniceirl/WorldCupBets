@@ -37,6 +37,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 
     public DbSet<User> Users => Set<User>();
 
+    public DbSet<UserInvitation> UserInvitations => Set<UserInvitation>();
+
     public DbSet<UserRole> UserRoles => Set<UserRole>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

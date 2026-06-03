@@ -2,8 +2,10 @@ import { DatePipe } from "@angular/common";
 import { Component, computed, inject, signal } from "@angular/core";
 import { forkJoin } from "rxjs";
 import { AuthStateService } from "../../core/auth/auth-state.service";
+import { AdminService } from "./admin.service";
 import { MatchesService } from "../matches/matches.service";
 import type { ChampionBetMarket, MatchBetSelection, MatchListItem } from "../matches/matches.models";
+import type { CreateUserInvitationRequest } from "./admin.models";
 
 @Component({
 	selector: "app-admin-page",
@@ -46,6 +48,24 @@ import type { ChampionBetMarket, MatchBetSelection, MatchListItem } from "../mat
 						<button type="button" class="rounded-xl border border-sky-600 bg-sky-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60" [disabled]="!isAdmin() || isSyncingFootballData()" (click)="syncFootballData()" data-testid="admin-sync-provider">{{ isSyncingFootballData() ? "Syncing..." : "Sync provider" }}</button>
 						<button type="button" class="rounded-xl border border-emerald-600 bg-emerald-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60" [disabled]="!isAdmin() || isImportingFixtures()" (click)="importGroupStageFixtures()" data-testid="admin-import-fixtures">{{ isImportingFixtures() ? "Importing..." : "Import group fixtures" }}</button>
 					</div>
+				</div>
+			</section>
+
+			<section class="rounded-2xl border border-amber-200 bg-white/90 p-5 shadow-sm dark:border-amber-900/70 dark:bg-slate-950/80">
+				<div class="grid gap-5 lg:grid-cols-[1fr_1.1fr] lg:items-end">
+					<div>
+						<p class="text-xs font-bold uppercase tracking-[0.2em] text-amber-700 dark:text-amber-300">Private league access</p>
+						<h2 class="mt-2 text-2xl font-black text-slate-950 dark:text-white">Invite a friend</h2>
+						<p class="mt-2 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">Add the Google account email before they sign in. The backend will reject any first-time Google user who is not on this list.</p>
+					</div>
+					<form class="grid gap-3 sm:grid-cols-[1fr_10rem_auto]" (submit)="$event.preventDefault(); createInvitation(inviteEmail.value, inviteRole.value); inviteEmail.value = ''">
+						<input #inviteEmail type="email" autocomplete="email" required placeholder="friend@gmail.com" class="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-200 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-amber-900" data-testid="admin-invite-email" />
+						<select #inviteRole class="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-white" data-testid="admin-invite-role">
+							<option value="Bettor">Bettor</option>
+							<option value="Admin">Admin</option>
+						</select>
+						<button type="submit" class="rounded-xl bg-amber-500 px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-60" [disabled]="!isAdmin() || isCreatingInvitation()" data-testid="admin-create-invitation">{{ isCreatingInvitation() ? "Inviting..." : "Invite" }}</button>
+					</form>
 				</div>
 			</section>
 
@@ -107,6 +127,7 @@ import type { ChampionBetMarket, MatchBetSelection, MatchListItem } from "../mat
 })
 export class AdminPageComponent {
 	private readonly authState = inject(AuthStateService);
+	private readonly adminService = inject(AdminService);
 	private readonly matchesService = inject(MatchesService);
 
 	readonly matches = signal<ReadonlyArray<MatchListItem>>([]);
@@ -120,6 +141,7 @@ export class AdminPageComponent {
 	readonly isSettlingChampion = signal(false);
 	readonly isSyncingFootballData = signal(false);
 	readonly isImportingFixtures = signal(false);
+	readonly isCreatingInvitation = signal(false);
 	readonly settlementQueue = computed(() => this.matches().filter((match) => !match.isBettingOpen && !match.isSettled));
 
 	constructor() {
@@ -234,7 +256,42 @@ export class AdminPageComponent {
 		});
 	}
 
+	createInvitation(email: string, roleName: string): void {
+		const request = this.createInvitationRequest(email, roleName);
+		if (!request) {
+			this.errorMessage.set("Enter a valid invited email.");
+			return;
+		}
+
+		this.errorMessage.set("");
+		this.successMessage.set("");
+		this.isCreatingInvitation.set(true);
+		this.adminService.createInvitation(request).subscribe({
+			next: (result) => {
+				const action = result.wasAlreadyInvited ? "was already invited" : "is invited";
+				this.successMessage.set(`${result.email} ${action} as ${result.roleName}.`);
+				this.isCreatingInvitation.set(false);
+			},
+			error: (error: { error?: { error?: string; detail?: string } }) => {
+				this.errorMessage.set(error.error?.error ?? error.error?.detail ?? "Unable to create invitation.");
+				this.isCreatingInvitation.set(false);
+			},
+		});
+	}
+
 	private isSelection(selection: string): selection is MatchBetSelection {
 		return selection === "Home" || selection === "Draw" || selection === "Away";
+	}
+
+	private createInvitationRequest(email: string, roleName: string): CreateUserInvitationRequest | null {
+		const normalizedEmail = email.trim();
+		if (!normalizedEmail) {
+			return null;
+		}
+
+		return {
+			email: normalizedEmail,
+			roleName: roleName === "Admin" ? "Admin" : "Bettor",
+		};
 	}
 }

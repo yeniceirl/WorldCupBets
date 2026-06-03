@@ -12,6 +12,7 @@ public sealed class GoogleLoginHandler
         IGoogleTokenValidator googleTokenValidator,
         IJwtTokenGenerator jwtTokenGenerator,
         IUserRepository userRepository,
+        IUserInvitationRepository userInvitationRepository,
         IRoleRepository roleRepository,
         CancellationToken cancellationToken)
     {
@@ -30,14 +31,20 @@ public sealed class GoogleLoginHandler
         var user = await userRepository.GetByGoogleSubjectWithRolesAsync(googleIdentity.Subject, cancellationToken);
         if (user is null)
         {
-            var bettorRole = await roleRepository.GetByNameAsync("Bettor", cancellationToken);
-            if (bettorRole is null)
+            var invitation = await userInvitationRepository.GetByEmailAsync(googleIdentity.Email, cancellationToken);
+            if (invitation is null)
             {
-                return Result<AuthResponseDto>.Failure(new Error("auth.role_not_found", "The Bettor role is not configured."));
+                return Result<AuthResponseDto>.Failure(new Error("auth.not_invited", "This Google account is not invited to this CopaCoin league."));
+            }
+
+            var role = await roleRepository.GetByNameAsync(invitation.RoleName, cancellationToken);
+            if (role is null)
+            {
+                return Result<AuthResponseDto>.Failure(new Error("auth.role_not_found", "The invited role is not configured."));
             }
 
             user = User.Create(googleIdentity.Subject, googleIdentity.Email, googleIdentity.DisplayName);
-            user.UserRoles.Add(UserRole.Create(user, bettorRole));
+            user.UserRoles.Add(UserRole.Create(user, role));
             await userRepository.AddAsync(user, cancellationToken);
             await userRepository.SaveChangesAsync(cancellationToken);
         }

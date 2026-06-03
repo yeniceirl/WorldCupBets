@@ -33,6 +33,7 @@ public static class WebApplicationExtensions
     {
         app.MapHealthChecks("/health").AllowAnonymous();
         app.MapAuthEndpoints();
+        app.MapAdminEndpoints();
         app.MapMeEndpoints();
         app.MapMatchesEndpoints();
         app.MapBetsEndpoints();

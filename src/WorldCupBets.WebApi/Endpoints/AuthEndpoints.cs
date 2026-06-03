@@ -40,6 +40,7 @@ public static class AuthEndpoints
                 {
                     "auth.invalid_google_token" => Results.Unauthorized(),
                     "auth.email_not_verified" => Results.Unauthorized(),
+                    "auth.not_invited" => Results.Forbid(),
                     "auth.role_not_found" => Results.Problem(
                         title: "Authentication configuration error",
                         detail: result.Error.Message,

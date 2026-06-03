@@ -70,6 +70,7 @@ public sealed class EndpointAuthorizationMetadataTests
         builder.WebHost.UseUrls("http://127.0.0.1:0");
         builder.Services.AddHealthChecks();
         builder.Services.AddScoped<IUserRepository>(_ => throw new NotSupportedException("Endpoint metadata tests do not execute handlers."));
+        builder.Services.AddScoped<IUserInvitationRepository>(_ => throw new NotSupportedException("Endpoint metadata tests do not execute handlers."));
         builder.Services.AddScoped<IRoleRepository>(_ => throw new NotSupportedException("Endpoint metadata tests do not execute handlers."));
         builder.Services.AddScoped<IJwtTokenGenerator>(_ => throw new NotSupportedException("Endpoint metadata tests do not execute handlers."));
         var app = builder.Build();

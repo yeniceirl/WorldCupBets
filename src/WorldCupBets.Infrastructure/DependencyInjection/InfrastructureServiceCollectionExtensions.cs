@@ -37,6 +37,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IChampionBetRepository, ChampionBetRepository>();
         services.AddScoped<ITournamentSettlementRepository, TournamentSettlementRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IUserInvitationRepository, UserInvitationRepository>();
         services.AddScoped<IRoleRepository, RoleRepository>();
         services.AddScoped<IExternalFootballDataRepository, ExternalFootballDataRepository>();
         return services;

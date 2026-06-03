@@ -11,7 +11,7 @@ namespace WorldCupBets.Application.Tests;
 public sealed class GoogleLoginHandlerTests
 {
     [Fact]
-    public async Task Handle_Provisions_First_Time_User_As_Bettor()
+    public async Task Handle_Provisions_Invited_First_Time_User_As_Bettor()
     {
         var validator = new StubGoogleTokenValidator(Result<GoogleIdentity>.Success(new GoogleIdentity(
             "google-123",
@@ -20,6 +20,7 @@ public sealed class GoogleLoginHandlerTests
             true)));
         var tokenGenerator = new StubJwtTokenGenerator();
         var userRepository = new InMemoryUserRepository();
+        var invitationRepository = new InMemoryUserInvitationRepository(UserInvitation.Create("ada@example.com"));
         var roleRepository = new InMemoryRoleRepository(Role.Create("Bettor"));
 
         var result = await GoogleLoginHandler.Handle(
@@ -27,6 +28,7 @@ public sealed class GoogleLoginHandlerTests
             validator,
             tokenGenerator,
             userRepository,
+            invitationRepository,
             roleRepository,
             CancellationToken.None);
 
@@ -37,6 +39,35 @@ public sealed class GoogleLoginHandlerTests
         Assert.Equal(User.InitialBalanceCc, userRepository.Users[0].CurrentBalanceCc);
         Assert.Contains("Bettor", result.Value!.User.Roles);
         Assert.Equal(result.Value.AccessToken, tokenGenerator.LastToken);
+    }
+
+    [Fact]
+    public async Task Handle_Rejects_First_Time_User_Without_Invitation()
+    {
+        var validator = new StubGoogleTokenValidator(Result<GoogleIdentity>.Success(new GoogleIdentity(
+            "google-123",
+            "ada@example.com",
+            "Ada Lovelace",
+            true)));
+        var tokenGenerator = new StubJwtTokenGenerator();
+        var userRepository = new InMemoryUserRepository();
+        var invitationRepository = new InMemoryUserInvitationRepository();
+        var roleRepository = new InMemoryRoleRepository(Role.Create("Bettor"));
+
+        var result = await GoogleLoginHandler.Handle(
+            new GoogleLoginCommand("valid-id-token"),
+            validator,
+            tokenGenerator,
+            userRepository,
+            invitationRepository,
+            roleRepository,
+            CancellationToken.None);
+
+        Assert.True(result.IsFailure);
+        Assert.Equal("auth.not_invited", result.Error?.Code);
+        Assert.Empty(userRepository.Users);
+        Assert.Equal(0, userRepository.AddCalls);
+        Assert.Empty(tokenGenerator.LastToken);
     }
 
     [Fact]
@@ -54,6 +85,7 @@ public sealed class GoogleLoginHandlerTests
             true)));
         var tokenGenerator = new StubJwtTokenGenerator();
         var userRepository = new InMemoryUserRepository(existingUser);
+        var invitationRepository = new InMemoryUserInvitationRepository();
         var roleRepository = new InMemoryRoleRepository(bettorRole);
 
         var result = await GoogleLoginHandler.Handle(
@@ -61,6 +93,7 @@ public sealed class GoogleLoginHandlerTests
             validator,
             tokenGenerator,
             userRepository,
+            invitationRepository,
             roleRepository,
             CancellationToken.None);
 
@@ -142,6 +175,25 @@ public sealed class GoogleLoginHandlerTests
         public Task<Role?> GetByNameAsync(string name, CancellationToken cancellationToken = default)
         {
             return Task.FromResult(seededRoles.SingleOrDefault(role => role.Name == name));
+        }
+    }
+
+    private sealed class InMemoryUserInvitationRepository(params UserInvitation[] invitations) : IUserInvitationRepository
+    {
+        public Task<UserInvitation?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
+        {
+            var normalizedEmail = UserInvitation.NormalizeEmail(email);
+            return Task.FromResult(invitations.SingleOrDefault(invitation => invitation.Email == normalizedEmail));
+        }
+
+        public Task AddAsync(UserInvitation invitation, CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
         }
     }
 

@@ -6,6 +6,10 @@
 .gga
 .pi/
 prompt.md
+plan.md
+
+# Local IDE metadata
+.idea/
 
 # .NET build outputs
 bin/

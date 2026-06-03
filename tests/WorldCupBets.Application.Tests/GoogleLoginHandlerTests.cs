@@ -116,6 +116,11 @@ public sealed class GoogleLoginHandlerTests
             return Task.FromResult(Users.SingleOrDefault(user => user.Id == userId));
         }
 
+        public Task<IReadOnlyList<User>> ListLeaderboardAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<User>>(Users.OrderByDescending(user => user.CurrentBalanceCc).ToArray());
+        }
+
         public Task AddAsync(User user, CancellationToken cancellationToken = default)
         {
             AddCalls++;

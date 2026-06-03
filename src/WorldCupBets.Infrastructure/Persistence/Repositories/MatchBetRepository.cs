@@ -11,11 +11,24 @@ public sealed class MatchBetRepository(AppDbContext dbContext) : IMatchBetReposi
         return dbContext.Set<MatchBet>().AnyAsync(matchBet => matchBet.UserId == userId && matchBet.MatchId == matchId, cancellationToken);
     }
 
+    public Task<MatchBet?> GetByUserAndMatchAsync(int userId, int matchId, CancellationToken cancellationToken = default)
+    {
+        return dbContext.Set<MatchBet>().SingleOrDefaultAsync(matchBet => matchBet.UserId == userId && matchBet.MatchId == matchId, cancellationToken);
+    }
+
     public async Task<IReadOnlyList<MatchBet>> ListByUserAsync(int userId, CancellationToken cancellationToken = default)
     {
         return await dbContext.Set<MatchBet>()
             .AsNoTracking()
             .Where(matchBet => matchBet.UserId == userId)
+            .ToArrayAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<MatchBet>> ListByMatchForSettlementAsync(int matchId, CancellationToken cancellationToken = default)
+    {
+        return await dbContext.Set<MatchBet>()
+            .Include(matchBet => matchBet.User)
+            .Where(matchBet => matchBet.MatchId == matchId)
             .ToArrayAsync(cancellationToken);
     }
 

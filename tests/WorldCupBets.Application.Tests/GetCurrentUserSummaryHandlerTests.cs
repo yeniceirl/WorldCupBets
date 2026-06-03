@@ -52,6 +52,11 @@ public sealed class GetCurrentUserSummaryHandlerTests
             return Task.FromResult(users.SingleOrDefault(user => user.Id == userId));
         }
 
+        public Task<IReadOnlyList<User>> ListLeaderboardAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<User>>(users.OrderByDescending(user => user.CurrentBalanceCc).ToArray());
+        }
+
         public Task AddAsync(User user, CancellationToken cancellationToken = default)
         {
             throw new NotSupportedException();

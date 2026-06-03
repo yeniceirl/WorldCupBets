@@ -6,6 +6,7 @@ using WorldCupBets.Application.Abstractions;
 using WorldCupBets.Domain.Repositories;
 using WorldCupBets.Infrastructure.Authentication;
 using WorldCupBets.Infrastructure.Caching;
+using WorldCupBets.Infrastructure.ExternalFootball;
 using WorldCupBets.Infrastructure.Messaging;
 using WorldCupBets.Infrastructure.Persistence;
 using WorldCupBets.Infrastructure.Persistence.Repositories;
@@ -18,6 +19,7 @@ public static class InfrastructureServiceCollectionExtensions
     {
         services.AddPersistence(configuration);
         services.AddCaching(configuration);
+        services.AddExternalFootballData(configuration);
         services.AddAuthenticationAdapters();
         services.AddMessaging(configuration);
         return services;
@@ -32,8 +34,33 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IMatchRepository, MatchRepository>();
         services.AddScoped<IMatchBetRepository, MatchBetRepository>();
         services.AddScoped<IChampionBetRepository, ChampionBetRepository>();
+        services.AddScoped<ITournamentSettlementRepository, TournamentSettlementRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IRoleRepository, RoleRepository>();
+        services.AddScoped<IExternalFootballDataRepository, ExternalFootballDataRepository>();
+        return services;
+    }
+
+    private static IServiceCollection AddExternalFootballData(this IServiceCollection services, IConfiguration configuration)
+    {
+        var section = configuration.GetSection("ExternalFootballData");
+        var options = new ExternalFootballDataOptions
+        {
+            Provider = section["Provider"] ?? "worldcup26",
+            BaseUrl = section["BaseUrl"] ?? "https://worldcup26.ir"
+        };
+
+        services.AddSingleton(options);
+        services.AddSingleton<IFootballDataProvider>(serviceProvider =>
+        {
+            var httpClient = new HttpClient
+            {
+                BaseAddress = new Uri(options.BaseUrl)
+            };
+
+            return new WorldCup26FootballDataProvider(httpClient, serviceProvider.GetRequiredService<ExternalFootballDataOptions>());
+        });
+
         return services;
     }
 

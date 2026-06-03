@@ -32,6 +32,8 @@ public static class WebApplicationExtensions
         app.MapMeEndpoints();
         app.MapMatchesEndpoints();
         app.MapBetsEndpoints();
+        app.MapLeaderboardEndpoints();
+        app.MapFootballDataEndpoints();
         return app;
     }
 }

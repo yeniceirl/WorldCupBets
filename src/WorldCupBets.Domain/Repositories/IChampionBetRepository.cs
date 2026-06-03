@@ -8,5 +8,7 @@ public interface IChampionBetRepository
 
     Task<ChampionBet?> GetByUserAsync(int userId, CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<ChampionBet>> ListForSettlementAsync(CancellationToken cancellationToken = default);
+
     Task AddAsync(ChampionBet championBet, CancellationToken cancellationToken = default);
 }

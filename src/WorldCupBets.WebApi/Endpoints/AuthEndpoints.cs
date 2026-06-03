@@ -76,6 +76,9 @@ public static class AuthEndpoints
             var displayName = string.IsNullOrWhiteSpace(request.DisplayName)
                 ? "Dev Bettor"
                 : request.DisplayName.Trim();
+            var requestedRoleName = string.Equals(request.Role, "Admin", StringComparison.OrdinalIgnoreCase)
+                ? "Admin"
+                : "Bettor";
 
             var user = await userRepository.GetByGoogleSubjectWithRolesAsync(googleSubject, cancellationToken);
             if (user is null)
@@ -91,7 +94,37 @@ public static class AuthEndpoints
 
                 user = User.Create(googleSubject, email, displayName);
                 user.UserRoles.Add(UserRole.Create(user, bettorRole));
+
+                if (requestedRoleName == "Admin")
+                {
+                    var adminRole = await roleRepository.GetByNameAsync("Admin", cancellationToken);
+                    if (adminRole is null)
+                    {
+                        return Results.Problem(
+                            title: "Authentication configuration error",
+                            detail: "The Admin role is not configured.",
+                            statusCode: StatusCodes.Status500InternalServerError);
+                    }
+
+                    user.UserRoles.Add(UserRole.Create(user, adminRole));
+                }
+
                 await userRepository.AddAsync(user, cancellationToken);
+                await userRepository.SaveChangesAsync(cancellationToken);
+            }
+
+            if (requestedRoleName == "Admin" && user.UserRoles.All(userRole => userRole.Role.Name != "Admin"))
+            {
+                var adminRole = await roleRepository.GetByNameAsync("Admin", cancellationToken);
+                if (adminRole is null)
+                {
+                    return Results.Problem(
+                        title: "Authentication configuration error",
+                        detail: "The Admin role is not configured.",
+                        statusCode: StatusCodes.Status500InternalServerError);
+                }
+
+                user.UserRoles.Add(UserRole.Create(user, adminRole));
                 await userRepository.SaveChangesAsync(cancellationToken);
             }
 
@@ -117,4 +150,4 @@ public static class AuthEndpoints
 
 public sealed record GoogleLoginRequest(string IdToken);
 
-public sealed record DevLoginRequest(string? DisplayName, string? Email, string? GoogleSubject);
+public sealed record DevLoginRequest(string? DisplayName, string? Email, string? GoogleSubject, string? Role);

@@ -110,6 +110,11 @@ public sealed class PlaceChampionBetHandlerTests
             return Task.FromResult(users.SingleOrDefault(user => user.Id == userId));
         }
 
+        public Task<IReadOnlyList<User>> ListLeaderboardAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<User>>(users.OrderByDescending(user => user.CurrentBalanceCc).ToArray());
+        }
+
         public Task AddAsync(User user, CancellationToken cancellationToken = default)
         {
             throw new NotSupportedException();
@@ -133,7 +138,17 @@ public sealed class PlaceChampionBetHandlerTests
             throw new NotSupportedException();
         }
 
+        public Task<Match?> GetByIdForSettlementAsync(int matchId, CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
         public Task<IReadOnlyList<Match>> ListAsync(CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<IReadOnlyList<Match>> ListGroupStageFixturesAsync(CancellationToken cancellationToken = default)
         {
             throw new NotSupportedException();
         }
@@ -141,6 +156,16 @@ public sealed class PlaceChampionBetHandlerTests
         public Task<IReadOnlyList<string>> ListTeamNamesAsync(CancellationToken cancellationToken = default)
         {
             return Task.FromResult<IReadOnlyList<string>>(teamNames);
+        }
+
+        public Task AddAsync(Match match, CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
         }
     }
 
@@ -156,6 +181,11 @@ public sealed class PlaceChampionBetHandlerTests
         public Task<ChampionBet?> GetByUserAsync(int userId, CancellationToken cancellationToken = default)
         {
             return Task.FromResult(championBets.SingleOrDefault(championBet => championBet.UserId == userId));
+        }
+
+        public Task<IReadOnlyList<ChampionBet>> ListForSettlementAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<ChampionBet>>(championBets.ToArray());
         }
 
         public Task AddAsync(ChampionBet championBet, CancellationToken cancellationToken = default)

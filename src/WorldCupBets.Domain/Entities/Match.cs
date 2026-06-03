@@ -10,13 +10,14 @@ public sealed class Match : Entity
     {
     }
 
-    private Match(MatchPhase phase, string homeTeamName, string awayTeamName, DateTime startsAtUtc, string venue)
+    private Match(MatchPhase phase, string homeTeamName, string awayTeamName, DateTime startsAtUtc, string venue, string? groupName = null)
     {
         Phase = phase;
         HomeTeamName = homeTeamName;
         AwayTeamName = awayTeamName;
         StartsAtUtc = startsAtUtc;
         Venue = venue;
+        GroupName = groupName;
     }
 
     public MatchPhase Phase { get; private set; }
@@ -29,9 +30,53 @@ public sealed class Match : Entity
 
     public string Venue { get; private set; } = string.Empty;
 
+    public string? GroupName { get; private set; }
+
+    public string? SourceProvider { get; private set; }
+
+    public string? SourceMatchId { get; private set; }
+
+    public DateTime? SourceSyncedAtUtc { get; private set; }
+
+    public MatchBetSelection? OfficialResult { get; private set; }
+
+    public DateTime? SettledAtUtc { get; private set; }
+
     public static Match Create(MatchPhase phase, string homeTeamName, string awayTeamName, DateTime startsAtUtc, string venue)
     {
         return new Match(phase, homeTeamName, awayTeamName, startsAtUtc, venue);
+    }
+
+    public static Match CreateGroupStageFixture(
+        string groupName,
+        string homeTeamName,
+        string awayTeamName,
+        DateTime startsAtUtc,
+        string venue,
+        string sourceProvider,
+        string sourceMatchId,
+        DateTime sourceSyncedAtUtc)
+    {
+        var match = new Match(MatchPhase.GroupStage, homeTeamName, awayTeamName, startsAtUtc, venue, groupName);
+        match.SetSource(sourceProvider, sourceMatchId, sourceSyncedAtUtc);
+        return match;
+    }
+
+    public void UpdateGroupStageFixture(
+        DateTime startsAtUtc,
+        string venue,
+        string sourceProvider,
+        string sourceMatchId,
+        DateTime sourceSyncedAtUtc)
+    {
+        if (Phase != MatchPhase.GroupStage)
+        {
+            throw new InvalidOperationException("Only group stage fixtures can be updated from external football data.");
+        }
+
+        StartsAtUtc = startsAtUtc;
+        Venue = venue;
+        SetSource(sourceProvider, sourceMatchId, sourceSyncedAtUtc);
     }
 
     public string GetStageLabel()
@@ -72,5 +117,42 @@ public sealed class Match : Entity
     public bool IsBettingOpenAt(DateTime nowUtc)
     {
         return nowUtc <= GetBettingClosesAtUtc();
+    }
+
+    public bool CanRecordOfficialResultAt(DateTime nowUtc)
+    {
+        return !IsBettingOpenAt(nowUtc);
+    }
+
+    public void RecordOfficialResult(MatchBetSelection officialResult, DateTime nowUtc)
+    {
+        if (!CanRecordOfficialResultAt(nowUtc))
+        {
+            throw new InvalidOperationException("The match betting window must be closed before recording an official result.");
+        }
+
+        if (SettledAtUtc.HasValue && OfficialResult != officialResult)
+        {
+            throw new InvalidOperationException("A settled match result cannot be changed.");
+        }
+
+        OfficialResult = officialResult;
+    }
+
+    public void MarkSettled(DateTime settledAtUtc)
+    {
+        if (!OfficialResult.HasValue)
+        {
+            throw new InvalidOperationException("An official result is required before settlement.");
+        }
+
+        SettledAtUtc ??= settledAtUtc;
+    }
+
+    private void SetSource(string sourceProvider, string sourceMatchId, DateTime sourceSyncedAtUtc)
+    {
+        SourceProvider = sourceProvider;
+        SourceMatchId = sourceMatchId;
+        SourceSyncedAtUtc = sourceSyncedAtUtc;
     }
 }

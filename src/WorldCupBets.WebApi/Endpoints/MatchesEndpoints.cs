@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Wolverine;
+using WorldCupBets.Domain.Common;
+using WorldCupBets.Domain.Entities;
 using WorldCupBets.Application.Features.Matches;
 
 namespace WorldCupBets.WebApi.Endpoints;
@@ -38,6 +40,49 @@ public static class MatchesEndpoints
         .Produces(StatusCodes.Status401Unauthorized)
         .Produces(StatusCodes.Status403Forbidden);
 
+        group.MapPost("/{id:int}/result", async (
+            int id,
+            RecordMatchResultRequest request,
+            IMessageBus messageBus,
+            CancellationToken cancellationToken) =>
+        {
+            if (!Enum.TryParse<MatchBetSelection>(request.OfficialResult, true, out var officialResult))
+            {
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    [nameof(request.OfficialResult)] = ["Official result must be one of: Home, Draw, Away."]
+                });
+            }
+
+            var result = await messageBus.InvokeAsync<Result<RecordMatchResultDto>>(
+                new RecordMatchResultCommand(id, officialResult),
+                cancellationToken);
+
+            if (result.IsFailure)
+            {
+                return result.Error?.Code switch
+                {
+                    "matches.not_found" => Results.NotFound(),
+                    "matches.result_window_open" => Results.BadRequest(new { error = result.Error.Message }),
+                    "matches.result_already_settled" => Results.Conflict(new { error = result.Error.Message }),
+                    _ => Results.BadRequest(new { error = result.Error?.Message ?? "The match result could not be recorded." })
+                };
+            }
+
+            return Results.Ok(result.Value);
+        })
+        .RequireAuthorization("Admin")
+        .WithName("RecordMatchResult")
+        .WithSummary("Record the official result for a match and settle match bets.")
+        .Produces<RecordMatchResultDto>(StatusCodes.Status200OK)
+        .ProducesValidationProblem(StatusCodes.Status400BadRequest)
+        .Produces(StatusCodes.Status401Unauthorized)
+        .Produces(StatusCodes.Status403Forbidden)
+        .Produces(StatusCodes.Status404NotFound)
+        .Produces(StatusCodes.Status409Conflict);
+
         return group;
     }
 }
+
+public sealed record RecordMatchResultRequest(string OfficialResult);

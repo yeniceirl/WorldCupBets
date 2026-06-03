@@ -39,24 +39,27 @@ public sealed class PlaceMatchBetHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Rejects_Duplicate_Bet_For_Same_User_And_Match()
+    public async Task Handle_Changes_Existing_Bet_Selection_While_Betting_Is_Open()
     {
         var user = User.Create("google-1", "ada@example.com", "Ada");
         SetEntityId(user, 10);
         var match = Match.Create(MatchPhase.GroupStage, "Argentina", "Japan", DateTime.UtcNow.AddHours(1), "MetLife Stadium");
         SetEntityId(match, 20);
         var existingBet = MatchBet.Create(user.Id, match.Id, MatchBetSelection.Draw, 5, DateTime.UtcNow);
+        var matchBetRepository = new StubMatchBetRepository(existingBet);
 
         var result = await PlaceMatchBetHandler.Handle(
             new PlaceMatchBetCommand(user.Id, match.Id, MatchBetSelection.Home),
             new StubUserRepository(user),
             new StubMatchRepository(match),
-            new StubMatchBetRepository(existingBet),
+            matchBetRepository,
             CancellationToken.None);
 
-        Assert.True(result.IsFailure);
-        Assert.Equal("bets.match_bet_already_exists", result.Error?.Code);
+        Assert.True(result.IsSuccess);
+        Assert.Equal("Home", result.Value?.Selection);
+        Assert.Equal(MatchBetSelection.Home, existingBet.Selection);
         Assert.Equal(User.InitialBalanceCc, user.CurrentBalanceCc);
+        Assert.Equal(0, matchBetRepository.AddCalls);
     }
 
     [Fact]
@@ -149,6 +152,11 @@ public sealed class PlaceMatchBetHandlerTests
             return Task.FromResult(users.SingleOrDefault(user => user.Id == userId));
         }
 
+        public Task<IReadOnlyList<User>> ListLeaderboardAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<User>>(users.OrderByDescending(user => user.CurrentBalanceCc).ToArray());
+        }
+
         public Task AddAsync(User user, CancellationToken cancellationToken = default)
         {
             throw new NotSupportedException();
@@ -184,9 +192,29 @@ public sealed class PlaceMatchBetHandlerTests
             return Task.FromResult<IReadOnlyList<Match>>(matches);
         }
 
+        public Task<IReadOnlyList<Match>> ListGroupStageFixturesAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<Match>>(matches.Where(match => match.Phase == MatchPhase.GroupStage).ToArray());
+        }
+
         public Task<Match?> GetByIdAsync(int matchId, CancellationToken cancellationToken = default)
         {
             return Task.FromResult(matches.SingleOrDefault(match => match.Id == matchId));
+        }
+
+        public Task<Match?> GetByIdForSettlementAsync(int matchId, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(matches.SingleOrDefault(match => match.Id == matchId));
+        }
+
+        public Task AddAsync(Match match, CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
         }
     }
 
@@ -201,9 +229,19 @@ public sealed class PlaceMatchBetHandlerTests
             return Task.FromResult(Stored.Any(matchBet => matchBet.UserId == userId && matchBet.MatchId == matchId));
         }
 
+        public Task<MatchBet?> GetByUserAndMatchAsync(int userId, int matchId, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(Stored.SingleOrDefault(matchBet => matchBet.UserId == userId && matchBet.MatchId == matchId));
+        }
+
         public Task<IReadOnlyList<MatchBet>> ListByUserAsync(int userId, CancellationToken cancellationToken = default)
         {
             return Task.FromResult<IReadOnlyList<MatchBet>>(Stored.Where(matchBet => matchBet.UserId == userId).ToArray());
+        }
+
+        public Task<IReadOnlyList<MatchBet>> ListByMatchForSettlementAsync(int matchId, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<MatchBet>>(Stored.Where(matchBet => matchBet.MatchId == matchId).ToArray());
         }
 
         public Task AddAsync(MatchBet matchBet, CancellationToken cancellationToken = default)

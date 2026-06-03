@@ -18,5 +18,67 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(user => user.RescueDebtCc).IsRequired();
         builder.HasIndex(user => user.GoogleSubject).IsUnique();
         builder.HasIndex(user => user.Email).IsUnique();
+
+        builder.HasData(
+            new
+            {
+                Id = 101,
+                GoogleSubject = "demo-maple",
+                Email = "maple@worldcupbets.local",
+                DisplayName = "Maple Moose",
+                CurrentBalanceCc = 1325,
+                RescueCount = 0,
+                RescueDebtCc = 0
+            },
+            new
+            {
+                Id = 102,
+                GoogleSubject = "demo-zayu",
+                Email = "zayu@worldcupbets.local",
+                DisplayName = "Zayu Jaguar",
+                CurrentBalanceCc = 1180,
+                RescueCount = 0,
+                RescueDebtCc = 0
+            },
+            new
+            {
+                Id = 103,
+                GoogleSubject = "demo-clutch",
+                Email = "clutch@worldcupbets.local",
+                DisplayName = "Clutch Eagle",
+                CurrentBalanceCc = 1110,
+                RescueCount = 1,
+                RescueDebtCc = 100
+            },
+            new
+            {
+                Id = 104,
+                GoogleSubject = "demo-lucia",
+                Email = "lucia@worldcupbets.local",
+                DisplayName = "Lucia del Gol",
+                CurrentBalanceCc = 990,
+                RescueCount = 0,
+                RescueDebtCc = 0
+            },
+            new
+            {
+                Id = 105,
+                GoogleSubject = "demo-takeshi",
+                Email = "takeshi@worldcupbets.local",
+                DisplayName = "Takeshi Bracket",
+                CurrentBalanceCc = 845,
+                RescueCount = 2,
+                RescueDebtCc = 200
+            },
+            new
+            {
+                Id = 106,
+                GoogleSubject = "demo-nora",
+                Email = "nora@worldcupbets.local",
+                DisplayName = "Nora Finalista",
+                CurrentBalanceCc = 760,
+                RescueCount = 0,
+                RescueDebtCc = 0
+            });
     }
 }

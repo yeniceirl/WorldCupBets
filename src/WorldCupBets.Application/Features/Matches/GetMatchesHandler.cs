@@ -21,12 +21,16 @@ public sealed class GetMatchesHandler
                 match.GetStageLabel(),
                 match.HomeTeamName,
                 match.AwayTeamName,
+                match.GroupName,
                 match.StartsAtUtc,
                 match.GetBettingClosesAtUtc(),
                 match.IsBettingOpenAt(nowUtc),
                 match.GetStakeAmountCc(),
                 match.Venue,
-                userSelectionsByMatchId.GetValueOrDefault(match.Id)))
+                userSelectionsByMatchId.GetValueOrDefault(match.Id),
+                match.OfficialResult?.ToString(),
+                match.SettledAtUtc.HasValue,
+                match.SettledAtUtc))
             .ToArray();
     }
 }

@@ -1,0 +1,118 @@
+using System.Globalization;
+using WorldCupBets.Application.Abstractions;
+using WorldCupBets.Domain.Entities;
+using WorldCupBets.Domain.Repositories;
+
+namespace WorldCupBets.Application.Features.FootballData;
+
+public sealed class ImportGroupStageFixturesHandler
+{
+    private const string ProviderName = "worldcup26";
+
+    public static async Task<ImportGroupStageFixturesResultDto> Handle(
+        ImportGroupStageFixturesCommand command,
+        IExternalFootballDataRepository externalFootballDataRepository,
+        IMatchRepository matchRepository,
+        CancellationToken cancellationToken)
+    {
+        var snapshot = await externalFootballDataRepository.GetSnapshotAsync(ProviderName, cancellationToken)
+            ?? throw new InvalidOperationException("External football data must be synchronized before importing group stage fixtures.");
+
+        var stadiumsByExternalId = snapshot.Stadiums.ToDictionary(stadium => stadium.ExternalId, StringComparer.OrdinalIgnoreCase);
+        var existingFixtures = await matchRepository.ListGroupStageFixturesAsync(cancellationToken);
+        var existingFixturesByKey = existingFixtures.ToDictionary(GetFixtureKey, StringComparer.OrdinalIgnoreCase);
+        var importedCount = 0;
+        var updatedCount = 0;
+        var skippedCount = 0;
+
+        foreach (var externalMatch in snapshot.Matches.Where(IsGroupStageFixture))
+        {
+            if (!TryParseLocalDateAsUtc(externalMatch.LocalDateText, out var startsAtUtc))
+            {
+                skippedCount++;
+                continue;
+            }
+
+            var homeTeamName = externalMatch.HomeTeamNameEn?.Trim();
+            var awayTeamName = externalMatch.AwayTeamNameEn?.Trim();
+            if (string.IsNullOrWhiteSpace(homeTeamName) || string.IsNullOrWhiteSpace(awayTeamName))
+            {
+                skippedCount++;
+                continue;
+            }
+
+            var venue = stadiumsByExternalId.TryGetValue(externalMatch.StadiumExternalId, out var stadium)
+                ? stadium.NameEn
+                : "TBD";
+            var fixtureKey = GetFixtureKey(externalMatch.GroupName, homeTeamName, awayTeamName);
+
+            if (existingFixturesByKey.TryGetValue(fixtureKey, out var existingFixture))
+            {
+                existingFixture.UpdateGroupStageFixture(
+                    startsAtUtc,
+                    venue,
+                    ProviderName,
+                    externalMatch.ExternalId,
+                    snapshot.SyncedAtUtc);
+                updatedCount++;
+                continue;
+            }
+
+            var match = Match.CreateGroupStageFixture(
+                externalMatch.GroupName,
+                homeTeamName,
+                awayTeamName,
+                startsAtUtc,
+                venue,
+                ProviderName,
+                externalMatch.ExternalId,
+                snapshot.SyncedAtUtc);
+
+            await matchRepository.AddAsync(match, cancellationToken);
+            existingFixturesByKey.Add(fixtureKey, match);
+            importedCount++;
+        }
+
+        await matchRepository.SaveChangesAsync(cancellationToken);
+
+        return new ImportGroupStageFixturesResultDto(
+            ProviderName,
+            importedCount,
+            updatedCount,
+            skippedCount,
+            snapshot.SyncedAtUtc);
+    }
+
+    private static bool IsGroupStageFixture(ExternalFootballMatchDto externalMatch)
+    {
+        return string.Equals(externalMatch.StageType, "group", StringComparison.OrdinalIgnoreCase)
+            && !string.IsNullOrWhiteSpace(externalMatch.GroupName);
+    }
+
+    private static bool TryParseLocalDateAsUtc(string localDateText, out DateTime startsAtUtc)
+    {
+        if (DateTime.TryParseExact(
+                localDateText,
+                "MM/dd/yyyy HH:mm",
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.None,
+                out var parsedDate))
+        {
+            startsAtUtc = DateTime.SpecifyKind(parsedDate, DateTimeKind.Utc);
+            return true;
+        }
+
+        startsAtUtc = default;
+        return false;
+    }
+
+    private static string GetFixtureKey(Match match)
+    {
+        return GetFixtureKey(match.GroupName ?? string.Empty, match.HomeTeamName, match.AwayTeamName);
+    }
+
+    private static string GetFixtureKey(string groupName, string homeTeamName, string awayTeamName)
+    {
+        return string.Join('|', MatchPhase.GroupStage, groupName.Trim(), homeTeamName.Trim(), awayTeamName.Trim());
+    }
+}

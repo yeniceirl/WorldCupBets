@@ -40,4 +40,9 @@ public sealed class MatchBet : Entity
 
         return new MatchBet(userId, matchId, selection, stakeAmountCc, placedAtUtc);
     }
+
+    public void ChangeSelection(MatchBetSelection selection)
+    {
+        Selection = selection;
+    }
 }

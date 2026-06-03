@@ -135,6 +135,44 @@ public static class BetsEndpoints
         .Produces(StatusCodes.Status401Unauthorized)
         .Produces(StatusCodes.Status409Conflict);
 
+        group.MapPost("/champion/settlement", async (
+            SettleChampionRequest request,
+            IMessageBus messageBus,
+            CancellationToken cancellationToken) =>
+        {
+            if (string.IsNullOrWhiteSpace(request.ChampionTeamName))
+            {
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    [nameof(request.ChampionTeamName)] = ["Champion team name is required."]
+                });
+            }
+
+            var result = await messageBus.InvokeAsync<Result<SettleChampionResultDto>>(
+                new SettleChampionCommand(request.ChampionTeamName.Trim()),
+                cancellationToken);
+
+            if (result.IsFailure)
+            {
+                return result.Error?.Code switch
+                {
+                    "bets.champion_required" => Results.BadRequest(new { error = result.Error.Message }),
+                    "bets.champion_already_settled" => Results.Conflict(new { error = result.Error.Message }),
+                    _ => Results.BadRequest(new { error = result.Error?.Message ?? "Champion settlement could not be completed." })
+                };
+            }
+
+            return Results.Ok(result.Value);
+        })
+        .RequireAuthorization("Admin")
+        .WithName("SettleChampion")
+        .WithSummary("Settle champion bets and record any undistributed jackpot remainder.")
+        .Produces<SettleChampionResultDto>(StatusCodes.Status200OK)
+        .ProducesValidationProblem(StatusCodes.Status400BadRequest)
+        .Produces(StatusCodes.Status401Unauthorized)
+        .Produces(StatusCodes.Status403Forbidden)
+        .Produces(StatusCodes.Status409Conflict);
+
         return group;
     }
 }
@@ -142,3 +180,5 @@ public static class BetsEndpoints
 public sealed record PlaceMatchBetRequest(int MatchId, string Selection);
 
 public sealed record PlaceChampionBetRequest(string TeamName);
+
+public sealed record SettleChampionRequest(string ChampionTeamName);

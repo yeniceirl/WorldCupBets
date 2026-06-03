@@ -35,6 +35,30 @@ public sealed class MatchRulesTests
     }
 
     [Fact]
+    public void RecordOfficialResult_Requires_Closed_Betting_Window()
+    {
+        var startsAtUtc = new DateTime(2026, 6, 14, 18, 0, 0, DateTimeKind.Utc);
+        var match = Match.Create(MatchPhase.GroupStage, "Argentina", "Japan", startsAtUtc, "MetLife Stadium");
+
+        Assert.Throws<InvalidOperationException>(() =>
+            match.RecordOfficialResult(MatchBetSelection.Home, startsAtUtc.AddMinutes(5)));
+
+        match.RecordOfficialResult(MatchBetSelection.Home, startsAtUtc.AddMinutes(5).AddSeconds(1));
+
+        Assert.Equal(MatchBetSelection.Home, match.OfficialResult);
+    }
+
+    [Fact]
+    public void CreditBalance_Increases_Current_Balance()
+    {
+        var user = User.Create("google-sub", "user@example.com", "User");
+
+        user.CreditBalance(25);
+
+        Assert.Equal(User.InitialBalanceCc + 25, user.CurrentBalanceCc);
+    }
+
+    [Fact]
     public async Task Handle_Exposes_Regulation_Metadata_And_Current_User_Bet_For_Matches()
     {
         var match = Match.Create(MatchPhase.GroupStage, "Argentina", "Japan", DateTime.UtcNow.AddHours(1), "MetLife Stadium");
@@ -82,9 +106,29 @@ public sealed class MatchRulesTests
             return Task.FromResult<IReadOnlyList<Match>>(matches);
         }
 
+        public Task<IReadOnlyList<Match>> ListGroupStageFixturesAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<Match>>(matches.Where(match => match.Phase == MatchPhase.GroupStage).ToArray());
+        }
+
         public Task<Match?> GetByIdAsync(int matchId, CancellationToken cancellationToken = default)
         {
             return Task.FromResult(matches.SingleOrDefault(match => match.Id == matchId));
+        }
+
+        public Task<Match?> GetByIdForSettlementAsync(int matchId, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(matches.SingleOrDefault(match => match.Id == matchId));
+        }
+
+        public Task AddAsync(Match match, CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
         }
     }
 
@@ -95,9 +139,19 @@ public sealed class MatchRulesTests
             return Task.FromResult(matchBets.Any(matchBet => matchBet.UserId == userId && matchBet.MatchId == matchId));
         }
 
+        public Task<MatchBet?> GetByUserAndMatchAsync(int userId, int matchId, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(matchBets.SingleOrDefault(matchBet => matchBet.UserId == userId && matchBet.MatchId == matchId));
+        }
+
         public Task<IReadOnlyList<MatchBet>> ListByUserAsync(int userId, CancellationToken cancellationToken = default)
         {
             return Task.FromResult<IReadOnlyList<MatchBet>>(matchBets.Where(matchBet => matchBet.UserId == userId).ToArray());
+        }
+
+        public Task<IReadOnlyList<MatchBet>> ListByMatchForSettlementAsync(int matchId, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<MatchBet>>(matchBets.Where(matchBet => matchBet.MatchId == matchId).ToArray());
         }
 
         public Task AddAsync(MatchBet matchBet, CancellationToken cancellationToken = default)

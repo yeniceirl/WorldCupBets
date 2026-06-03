@@ -19,6 +19,15 @@ public sealed class UserRepository(AppDbContext dbContext) : IUserRepository
         return dbContext.Users.SingleOrDefaultAsync(user => user.Id == userId, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<User>> ListLeaderboardAsync(CancellationToken cancellationToken = default)
+    {
+        return await dbContext.Users
+            .AsNoTracking()
+            .OrderByDescending(user => user.CurrentBalanceCc)
+            .ThenBy(user => user.DisplayName)
+            .ToArrayAsync(cancellationToken);
+    }
+
     public Task AddAsync(User user, CancellationToken cancellationToken = default)
     {
         return dbContext.Users.AddAsync(user, cancellationToken).AsTask();

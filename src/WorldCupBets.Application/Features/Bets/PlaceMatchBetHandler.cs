@@ -25,15 +25,24 @@ public sealed class PlaceMatchBetHandler
             return Result<PlaceMatchBetResultDto>.Failure(new Error("bets.match_not_found", "The selected match was not found."));
         }
 
-        if (await matchBetRepository.ExistsForUserAndMatchAsync(command.UserId, command.MatchId, cancellationToken))
-        {
-            return Result<PlaceMatchBetResultDto>.Failure(new Error("bets.match_bet_already_exists", "You already placed a bet for this match."));
-        }
-
         var nowUtc = DateTime.UtcNow;
         if (!match.IsBettingOpenAt(nowUtc))
         {
             return Result<PlaceMatchBetResultDto>.Failure(new Error("bets.match_betting_closed", "Betting for this match is already closed."));
+        }
+
+        var existingMatchBet = await matchBetRepository.GetByUserAndMatchAsync(command.UserId, command.MatchId, cancellationToken);
+        if (existingMatchBet is not null)
+        {
+            existingMatchBet.ChangeSelection(command.Selection);
+            await userRepository.SaveChangesAsync(cancellationToken);
+
+            return Result<PlaceMatchBetResultDto>.Success(new PlaceMatchBetResultDto(
+                command.MatchId,
+                command.Selection.ToString(),
+                existingMatchBet.StakeAmountCc,
+                user.CurrentBalanceCc,
+                existingMatchBet.PlacedAtUtc));
         }
 
         var stakeAmountCc = match.GetStakeAmountCc();

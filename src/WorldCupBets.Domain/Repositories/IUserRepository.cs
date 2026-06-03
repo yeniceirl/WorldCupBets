@@ -8,6 +8,8 @@ public interface IUserRepository
 
     Task<User?> GetByIdAsync(int userId, CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<User>> ListLeaderboardAsync(CancellationToken cancellationToken = default);
+
     Task AddAsync(User user, CancellationToken cancellationToken = default);
 
     Task SaveChangesAsync(CancellationToken cancellationToken = default);

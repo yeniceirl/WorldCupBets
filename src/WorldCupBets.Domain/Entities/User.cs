@@ -59,6 +59,16 @@ public sealed class User : Entity
         CurrentBalanceCc -= amountCc;
     }
 
+    public void CreditBalance(int amountCc)
+    {
+        if (amountCc <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(amountCc), "Amount must be greater than zero.");
+        }
+
+        CurrentBalanceCc = checked(CurrentBalanceCc + amountCc);
+    }
+
     public bool CanReceiveDeadRescue()
     {
         return CurrentBalanceCc == 0 && RescueCount < MaxDeadRescuesPerTournament;

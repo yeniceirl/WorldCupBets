@@ -24,6 +24,14 @@ public sealed class MatchRepository(AppDbContext dbContext) : IMatchRepository
             .ToArrayAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Match>> ListGroupStageFixturesAsync(CancellationToken cancellationToken = default)
+    {
+        return await dbContext.Matches
+            .Where(match => match.Phase == MatchPhase.GroupStage)
+            .OrderBy(match => match.StartsAtUtc)
+            .ToArrayAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<string>> ListTeamNamesAsync(CancellationToken cancellationToken = default)
     {
         var homeTeams = dbContext.Matches.AsNoTracking().Select(match => match.HomeTeamName);
@@ -39,5 +47,20 @@ public sealed class MatchRepository(AppDbContext dbContext) : IMatchRepository
     public Task<Match?> GetByIdAsync(int matchId, CancellationToken cancellationToken = default)
     {
         return dbContext.Matches.SingleOrDefaultAsync(match => match.Id == matchId, cancellationToken);
+    }
+
+    public Task<Match?> GetByIdForSettlementAsync(int matchId, CancellationToken cancellationToken = default)
+    {
+        return dbContext.Matches.SingleOrDefaultAsync(match => match.Id == matchId, cancellationToken);
+    }
+
+    public async Task AddAsync(Match match, CancellationToken cancellationToken = default)
+    {
+        await dbContext.Matches.AddAsync(match, cancellationToken);
+    }
+
+    public Task SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        return dbContext.SaveChangesAsync(cancellationToken);
     }
 }

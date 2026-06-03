@@ -16,6 +16,13 @@ public sealed class ChampionBetRepository(AppDbContext dbContext) : IChampionBet
         return dbContext.ChampionBets.AsNoTracking().SingleOrDefaultAsync(championBet => championBet.UserId == userId, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<ChampionBet>> ListForSettlementAsync(CancellationToken cancellationToken = default)
+    {
+        return await dbContext.ChampionBets
+            .Include(championBet => championBet.User)
+            .ToArrayAsync(cancellationToken);
+    }
+
     public Task AddAsync(ChampionBet championBet, CancellationToken cancellationToken = default)
     {
         return dbContext.ChampionBets.AddAsync(championBet, cancellationToken).AsTask();

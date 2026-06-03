@@ -16,12 +16,11 @@ public static class ServiceCollectionExtensions
     {
         services.Configure<JwtOptions>(configuration.GetSection("Jwt"));
         services.Configure<GoogleOptions>(configuration.GetSection("Google"));
+        services.Configure<AuthOptions>(configuration.GetSection("Auth"));
         services.AddWebApiTelemetry(configuration);
 
         var jwtOptions = configuration.GetSection("Jwt").Get<JwtOptions>() ?? new JwtOptions();
-        var secret = string.IsNullOrWhiteSpace(jwtOptions.Secret)
-            ? throw new InvalidOperationException("Jwt:Secret must be configured.")
-            : jwtOptions.Secret;
+        jwtOptions.Validate();
 
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen(options =>
@@ -59,7 +58,7 @@ public static class ServiceCollectionExtensions
                     ValidateLifetime = true,
                     ValidIssuer = jwtOptions.Issuer,
                     ValidAudience = jwtOptions.Audience,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret)),
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Secret)),
                     ClockSkew = TimeSpan.FromMinutes(1)
                 };
             });

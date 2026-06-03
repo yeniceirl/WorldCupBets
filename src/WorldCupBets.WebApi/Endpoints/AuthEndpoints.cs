@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Wolverine;
 using WorldCupBets.Application.Abstractions;
 using WorldCupBets.Application.Features.Auth;
 using WorldCupBets.Domain.Common;
 using WorldCupBets.Domain.Entities;
 using WorldCupBets.Domain.Repositories;
+using WorldCupBets.WebApi.Configuration;
 
 namespace WorldCupBets.WebApi.Endpoints;
 
@@ -57,12 +59,13 @@ public static class AuthEndpoints
         group.MapPost("/dev-login", [AllowAnonymous] async (
             DevLoginRequest request,
             IHostEnvironment hostEnvironment,
+            IOptions<AuthOptions> authOptions,
             IUserRepository userRepository,
             IRoleRepository roleRepository,
             IJwtTokenGenerator jwtTokenGenerator,
             CancellationToken cancellationToken) =>
         {
-            if (!hostEnvironment.IsDevelopment())
+            if (!hostEnvironment.IsDevelopment() || !authOptions.Value.EnableDevLogin)
             {
                 return Results.NotFound();
             }

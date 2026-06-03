@@ -27,7 +27,7 @@ public sealed class JwtTokenGenerator(IConfiguration configuration) : IJwtTokenG
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(claims),
-            Expires = now.AddMinutes(options.AccessTokenLifetimeMinutes),
+            Expires = now.AddMinutes(GetAccessTokenLifetimeMinutes(options)),
             IssuedAt = now,
             Issuer = options.Issuer,
             Audience = options.Audience,
@@ -54,6 +54,16 @@ public sealed class JwtTokenGenerator(IConfiguration configuration) : IJwtTokenG
         }
 
         return options.Secret;
+    }
+
+    private static int GetAccessTokenLifetimeMinutes(JwtAuthOptions options)
+    {
+        if (options.AccessTokenLifetimeMinutes is < 5 or > 120)
+        {
+            throw new InvalidOperationException("Jwt:AccessTokenLifetimeMinutes must be between 5 and 120 minutes.");
+        }
+
+        return options.AccessTokenLifetimeMinutes;
     }
 
     private JwtAuthOptions GetOptions()

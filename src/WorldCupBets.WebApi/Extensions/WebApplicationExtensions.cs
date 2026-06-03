@@ -18,8 +18,12 @@ public static class WebApplicationExtensions
     public static WebApplication UseWebApiPipeline(this WebApplication app)
     {
         app.UseMiddleware<GlobalExceptionMiddleware>();
-        app.UseSwagger();
-        app.UseSwaggerUI();
+        if (app.Environment.IsDevelopment())
+        {
+            app.UseSwagger();
+            app.UseSwaggerUI();
+        }
+
         app.UseAuthentication();
         app.UseAuthorization();
         return app;

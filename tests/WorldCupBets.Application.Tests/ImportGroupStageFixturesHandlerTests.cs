@@ -1,5 +1,6 @@
 using WorldCupBets.Application.Abstractions;
 using WorldCupBets.Application.Features.FootballData;
+using WorldCupBets.Domain.Common;
 using WorldCupBets.Domain.Entities;
 using WorldCupBets.Domain.Repositories;
 using Xunit;
@@ -56,8 +57,43 @@ public sealed class ImportGroupStageFixturesHandlerTests
 
         Assert.Equal(0, result.ImportedCount);
         Assert.Equal(1, result.UpdatedCount);
+        Assert.Equal(0, result.UnsafeUpdateSkippedCount);
         Assert.Single(matchRepository.Matches);
         Assert.Equal(new DateTime(2026, 6, 11, 13, 0, 0, DateTimeKind.Utc), existingMatch.StartsAtUtc);
+        Assert.Equal("Estadio Azteca", existingMatch.Venue);
+        Assert.Equal("worldcup26", existingMatch.SourceProvider);
+        Assert.Equal("1", existingMatch.SourceMatchId);
+    }
+
+    [Fact]
+    public async Task Import_does_not_move_fixture_start_time_when_bets_exist()
+    {
+        var syncedAtUtc = new DateTime(2026, 6, 3, 12, 0, 0, DateTimeKind.Utc);
+        var originalStartsAtUtc = new DateTime(2026, 6, 11, 17, 0, 0, DateTimeKind.Utc);
+        var existingMatch = Match.CreateGroupStageFixture(
+            "A",
+            "Mexico",
+            "South Africa",
+            originalStartsAtUtc,
+            "Old Venue",
+            "other-provider",
+            "old-id",
+            syncedAtUtc.AddDays(-1));
+        SetEntityId(existingMatch, 20);
+        var matchRepository = new StubMatchRepository([existingMatch], [existingMatch.Id]);
+        var snapshotRepository = new StubExternalFootballDataRepository(CreateSnapshot(syncedAtUtc));
+
+        var result = await ImportGroupStageFixturesHandler.Handle(
+            new ImportGroupStageFixturesCommand(),
+            snapshotRepository,
+            matchRepository,
+            CancellationToken.None);
+
+        Assert.Equal(0, result.ImportedCount);
+        Assert.Equal(0, result.UpdatedCount);
+        Assert.Equal(1, result.SkippedCount);
+        Assert.Equal(1, result.UnsafeUpdateSkippedCount);
+        Assert.Equal(originalStartsAtUtc, existingMatch.StartsAtUtc);
         Assert.Equal("Estadio Azteca", existingMatch.Venue);
         Assert.Equal("worldcup26", existingMatch.SourceProvider);
         Assert.Equal("1", existingMatch.SourceMatchId);
@@ -104,9 +140,28 @@ public sealed class ImportGroupStageFixturesHandlerTests
         }
     }
 
-    private sealed class StubMatchRepository(params Match[] seeded) : IMatchRepository
+    private static void SetEntityId(Entity entity, int id)
     {
-        public List<Match> Matches { get; } = [.. seeded];
+        var property = typeof(Entity).GetProperty(nameof(Entity.Id), System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
+        property!.SetValue(entity, id);
+    }
+
+    private sealed class StubMatchRepository : IMatchRepository
+    {
+        private readonly HashSet<int> matchIdsWithBets;
+
+        public StubMatchRepository(params Match[] seeded)
+            : this(seeded, [])
+        {
+        }
+
+        public StubMatchRepository(IEnumerable<Match> seeded, IEnumerable<int> matchIdsWithBets)
+        {
+            Matches = [.. seeded];
+            this.matchIdsWithBets = matchIdsWithBets.ToHashSet();
+        }
+
+        public List<Match> Matches { get; }
 
         public Task<IReadOnlyList<Match>> ListAsync(CancellationToken cancellationToken = default)
         {
@@ -116,6 +171,11 @@ public sealed class ImportGroupStageFixturesHandlerTests
         public Task<IReadOnlyList<Match>> ListGroupStageFixturesAsync(CancellationToken cancellationToken = default)
         {
             return Task.FromResult<IReadOnlyList<Match>>(Matches.Where(match => match.Phase == MatchPhase.GroupStage).ToArray());
+        }
+
+        public Task<IReadOnlySet<int>> ListMatchIdsWithBetsAsync(IEnumerable<int> matchIds, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlySet<int>>(matchIds.Where(matchIdsWithBets.Contains).ToHashSet());
         }
 
         public Task<Match?> GetByIdAsync(int matchId, CancellationToken cancellationToken = default)

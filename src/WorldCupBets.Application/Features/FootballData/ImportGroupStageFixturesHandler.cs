@@ -20,10 +20,12 @@ public sealed class ImportGroupStageFixturesHandler
 
         var stadiumsByExternalId = snapshot.Stadiums.ToDictionary(stadium => stadium.ExternalId, StringComparer.OrdinalIgnoreCase);
         var existingFixtures = await matchRepository.ListGroupStageFixturesAsync(cancellationToken);
+        var matchIdsWithBets = await matchRepository.ListMatchIdsWithBetsAsync(existingFixtures.Select(match => match.Id), cancellationToken);
         var existingFixturesByKey = existingFixtures.ToDictionary(GetFixtureKey, StringComparer.OrdinalIgnoreCase);
         var importedCount = 0;
         var updatedCount = 0;
         var skippedCount = 0;
+        var unsafeUpdateSkippedCount = 0;
 
         foreach (var externalMatch in snapshot.Matches.Where(IsGroupStageFixture))
         {
@@ -48,6 +50,18 @@ public sealed class ImportGroupStageFixturesHandler
 
             if (existingFixturesByKey.TryGetValue(fixtureKey, out var existingFixture))
             {
+                if (matchIdsWithBets.Contains(existingFixture.Id) && existingFixture.StartsAtUtc != startsAtUtc)
+                {
+                    existingFixture.UpdateGroupStageFixtureMetadata(
+                        venue,
+                        ProviderName,
+                        externalMatch.ExternalId,
+                        snapshot.SyncedAtUtc);
+                    skippedCount++;
+                    unsafeUpdateSkippedCount++;
+                    continue;
+                }
+
                 existingFixture.UpdateGroupStageFixture(
                     startsAtUtc,
                     venue,
@@ -80,6 +94,7 @@ public sealed class ImportGroupStageFixturesHandler
             importedCount,
             updatedCount,
             skippedCount,
+            unsafeUpdateSkippedCount,
             snapshot.SyncedAtUtc);
     }
 

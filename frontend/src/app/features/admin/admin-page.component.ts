@@ -220,7 +220,10 @@ export class AdminPageComponent {
 		this.isImportingFixtures.set(true);
 		this.matchesService.importGroupStageFixtures().subscribe({
 			next: (result) => {
-				this.successMessage.set(`Imported ${result.importedCount}, updated ${result.updatedCount}, skipped ${result.skippedCount} group stage fixtures.`);
+				const unsafeSkipMessage = result.unsafeUpdateSkippedCount > 0
+					? ` ${result.unsafeUpdateSkippedCount} fixture updates were blocked because bets already exist.`
+					: "";
+				this.successMessage.set(`Imported ${result.importedCount}, updated ${result.updatedCount}, skipped ${result.skippedCount} group stage fixtures.${unsafeSkipMessage}`);
 				this.isImportingFixtures.set(false);
 				this.loadData();
 			},

@@ -5,4 +5,5 @@ public sealed record ImportGroupStageFixturesResultDto(
     int ImportedCount,
     int UpdatedCount,
     int SkippedCount,
+    int UnsafeUpdateSkippedCount,
     DateTime SourceSyncedAtUtc);

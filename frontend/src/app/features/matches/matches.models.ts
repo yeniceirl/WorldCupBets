@@ -163,5 +163,6 @@ export interface ImportGroupStageFixturesResult {
 	importedCount: number;
 	updatedCount: number;
 	skippedCount: number;
+	unsafeUpdateSkippedCount: number;
 	sourceSyncedAtUtc: string;
 }

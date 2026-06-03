@@ -32,6 +32,24 @@ public sealed class MatchRepository(AppDbContext dbContext) : IMatchRepository
             .ToArrayAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlySet<int>> ListMatchIdsWithBetsAsync(IEnumerable<int> matchIds, CancellationToken cancellationToken = default)
+    {
+        var ids = matchIds.Distinct().ToArray();
+        if (ids.Length == 0)
+        {
+            return new HashSet<int>();
+        }
+
+        var idsWithBets = await dbContext.MatchBets
+            .AsNoTracking()
+            .Where(matchBet => ids.Contains(matchBet.MatchId))
+            .Select(matchBet => matchBet.MatchId)
+            .Distinct()
+            .ToArrayAsync(cancellationToken);
+
+        return idsWithBets.ToHashSet();
+    }
+
     public async Task<IReadOnlyList<string>> ListTeamNamesAsync(CancellationToken cancellationToken = default)
     {
         var homeTeams = dbContext.Matches.AsNoTracking().Select(match => match.HomeTeamName);

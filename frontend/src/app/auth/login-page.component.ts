@@ -25,21 +25,21 @@ declare global {
 	selector: "app-login-page",
 	standalone: true,
 	template: `
-		<section class="mx-auto max-w-2xl rounded-2xl border border-slate-200 bg-white p-8 shadow-sm" data-testid="login-page">
-			<p class="text-sm font-medium uppercase tracking-wide text-sky-700">Sign in</p>
-			<h1 class="mt-2 text-3xl font-semibold">Google login</h1>
-			<p class="mt-4 text-sm text-slate-600">
+		<section class="mx-auto max-w-2xl rounded-[2rem] border border-white/70 bg-white/85 p-8 shadow-xl shadow-sky-900/5 backdrop-blur dark:border-slate-700 dark:bg-slate-950/80" data-testid="login-page">
+			<p class="text-sm font-bold uppercase tracking-[0.24em] text-sky-700 dark:text-sky-300">Sign in</p>
+			<h1 class="mt-2 text-4xl font-black tracking-tight text-slate-950 dark:text-white">Enter the CopaCoin arena</h1>
+			<p class="mt-4 text-sm leading-6 text-slate-600 dark:text-slate-300">
 				Use Google Identity Services to obtain an ID token, then exchange it with the backend.
 			</p>
 
 			@if (isLoading) {
-				<p class="mt-6 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-700">
+				<p class="mt-6 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-700 dark:border-sky-900 dark:bg-sky-950 dark:text-sky-200">
 					Loading Google sign-in...
 				</p>
 			}
 
 			@if (errorMessage) {
-				<p class="mt-6 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+				<p class="mt-6 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-200">
 					{{ errorMessage }}
 				</p>
 			}
@@ -47,17 +47,30 @@ declare global {
 			<div class="mt-6 flex flex-col gap-4">
 				<div #googleButtonContainer class="min-h-10" data-testid="google-login-container"></div>
 				@if (isDevLoginEnabled) {
-					<button
-						type="button"
-						class="rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-800 transition hover:border-sky-400 hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
-						(click)="signInWithDevLogin()"
-						[disabled]="isDevLoginLoading"
-						data-testid="dev-login-button"
-					>
-						{{ isDevLoginLoading ? "Signing in..." : "Use development login" }}
-					</button>
+					<div class="grid gap-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-900/70 sm:grid-cols-2">
+						<button
+							type="button"
+							class="rounded-xl border border-slate-300 bg-white px-4 py-3 text-left text-sm font-medium text-slate-800 transition hover:border-sky-400 hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+							(click)="signInWithDevLogin('Bettor')"
+							[disabled]="isDevLoginLoading"
+							data-testid="dev-login-bettor-button"
+						>
+							<span class="block font-bold">Dev Bettor</span>
+							<span class="mt-1 block text-xs text-slate-500 dark:text-slate-400">Bet, check picks, and view standings.</span>
+						</button>
+						<button
+							type="button"
+							class="rounded-xl border border-slate-900 bg-slate-950 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 dark:border-amber-300 dark:bg-amber-300 dark:text-slate-950"
+							(click)="signInWithDevLogin('Admin')"
+							[disabled]="isDevLoginLoading"
+							data-testid="dev-login-admin-button"
+						>
+							<span class="block font-bold">Dev Admin</span>
+							<span class="mt-1 block text-xs text-slate-300 dark:text-slate-800">Record results and settle champion bets.</span>
+						</button>
+					</div>
 				}
-				<p class="text-xs text-slate-500">
+				<p class="text-xs text-slate-500 dark:text-slate-400">
 					The credential is kept in browser memory and forwarded to the callback route through router state,
 					not the URL.
 				</p>
@@ -86,11 +99,16 @@ export class LoginPageComponent implements AfterViewInit {
 		}
 	}
 
-	signInWithDevLogin(): void {
+	signInWithDevLogin(role: "Admin" | "Bettor"): void {
 		this.errorMessage = "";
 		this.isDevLoginLoading = true;
 
-		this.authService.devLogin()
+		this.authService.devLogin({
+			role,
+			displayName: role === "Admin" ? "Dev Admin" : "Dev Bettor",
+			email: role === "Admin" ? "dev-admin@worldcupbets.local" : "dev-bettor@worldcupbets.local",
+			googleSubject: role === "Admin" ? "dev-admin" : "dev-bettor",
+		})
 			.pipe(takeUntilDestroyed(this.destroyRef))
 			.subscribe({
 				next: () => {

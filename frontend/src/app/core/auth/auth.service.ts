@@ -2,7 +2,7 @@ import { HttpClient } from "@angular/common/http";
 import { Injectable, inject } from "@angular/core";
 import type { Observable } from "rxjs";
 import { catchError, tap, throwError } from "rxjs";
-import type { AuthResponse } from "./auth.models";
+import type { AuthResponse, DevLoginRequest } from "./auth.models";
 import { AuthStateService } from "./auth-state.service";
 
 @Injectable({ providedIn: "root" })
@@ -22,9 +22,9 @@ export class AuthService {
 			);
 	}
 
-	devLogin(): Observable<AuthResponse> {
+	devLogin(request: DevLoginRequest = {}): Observable<AuthResponse> {
 		return this.httpClient
-			.post<AuthResponse>("/api/auth/dev-login", {})
+			.post<AuthResponse>("/api/auth/dev-login", request)
 			.pipe(
 				tap((response) => this.authState.setAuthenticatedSession(response)),
 				catchError((error) => {

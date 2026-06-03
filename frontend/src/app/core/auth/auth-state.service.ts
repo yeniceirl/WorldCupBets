@@ -15,12 +15,13 @@ export class AuthStateService {
 	hydrateFromStorage(): void {
 		const storedState = loadStoredAuthState();
 		this.accessToken.set(storedState?.accessToken ?? null);
+		this.user.set(storedState?.user ?? null);
 	}
 
 	setAuthenticatedSession(response: AuthResponse): void {
 		this.accessToken.set(response.accessToken);
 		this.user.set(response.user);
-		persistAuthState({ accessToken: response.accessToken });
+		persistAuthState({ accessToken: response.accessToken, user: response.user });
 	}
 
 	clear(): void {

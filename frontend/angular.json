@@ -33,6 +33,11 @@
                 "input": "public"
               },
               {
+                "glob": "**/*",
+                "input": "src/assets",
+                "output": "assets"
+              },
+              {
                 "glob": "env.js",
                 "input": ".generated",
                 "output": "/"

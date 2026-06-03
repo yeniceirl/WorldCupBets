@@ -1,11 +1,23 @@
-@import 'tailwindcss';
-@import '@angular/material/prebuilt-themes/azure-blue.css';
+@import "tailwindcss";
+@import "@angular/material/prebuilt-themes/azure-blue.css";
+
+@custom-variant dark (&:where(.dark, .dark *));
 
 html,
 body {
   margin: 0;
   min-height: 100%;
-  font-family: Inter, system-ui, sans-serif;
-  background: #f8fafc;
+  font-family: ui-rounded, "Aptos", "Segoe UI", system-ui, sans-serif;
+  background-color: #f8fafc;
+  background-image: radial-gradient(circle at top left, rgba(219, 234, 254, 0.72), transparent 34%), linear-gradient(rgba(248, 250, 252, 0.62), rgba(255, 247, 237, 0.78)), url("/assets/brand/copa-bg-texture.webp");
+  background-attachment: fixed;
+  background-position: center top;
+  background-size: cover;
   color: #0f172a;
+}
+
+.dark body {
+  background-color: #020617;
+  background-image: radial-gradient(circle at top left, rgba(30, 64, 175, 0.42), transparent 38%), linear-gradient(rgba(2, 6, 23, 0.68), rgba(15, 23, 42, 0.86)), url("/assets/brand/copa-bg-texture-dark.webp");
+  color: #f8fafc;
 }

@@ -12,4 +12,12 @@ export interface AuthResponse {
 
 export interface StoredAuthState {
 	accessToken: string;
+	user: AuthenticatedUser;
+}
+
+export interface DevLoginRequest {
+	displayName?: string;
+	email?: string;
+	googleSubject?: string;
+	role?: "Admin" | "Bettor";
 }

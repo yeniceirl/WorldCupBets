@@ -23,6 +23,8 @@ public sealed class TournamentSettlement : Entity
 
     public int UndistributedJackpotCc { get; private set; }
 
+    public int Version { get; private set; }
+
     public static TournamentSettlement CreateSingleton()
     {
         return new TournamentSettlement(SingletonId);

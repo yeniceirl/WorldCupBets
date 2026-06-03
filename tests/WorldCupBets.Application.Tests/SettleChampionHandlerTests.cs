@@ -1,4 +1,5 @@
 using System.Reflection;
+using WorldCupBets.Application.Abstractions;
 using WorldCupBets.Application.Features.Bets;
 using WorldCupBets.Domain.Common;
 using WorldCupBets.Domain.Entities;
@@ -24,6 +25,7 @@ public sealed class SettleChampionHandlerTests
                 CreateBet(loser, "Japan")),
             new StubTournamentSettlementRepository(settlement),
             new StubUserRepository(winner, loser),
+            new NoopApplicationTransactionFactory(),
             CancellationToken.None);
 
         Assert.True(result.IsSuccess);
@@ -54,6 +56,7 @@ public sealed class SettleChampionHandlerTests
                 CreateBet(loserTwo, "Brazil")),
             new StubTournamentSettlementRepository(settlement),
             new StubUserRepository(winnerOne, winnerTwo, loserOne, loserTwo),
+            new NoopApplicationTransactionFactory(),
             CancellationToken.None);
 
         Assert.True(result.IsSuccess);
@@ -82,6 +85,7 @@ public sealed class SettleChampionHandlerTests
                 CreateBet(loser, "Japan")),
             new StubTournamentSettlementRepository(settlement),
             new StubUserRepository(winnerOne, winnerTwo, loser),
+            new NoopApplicationTransactionFactory(),
             CancellationToken.None);
 
         Assert.True(result.IsSuccess);
@@ -108,6 +112,7 @@ public sealed class SettleChampionHandlerTests
             championBetRepository,
             new StubTournamentSettlementRepository(settlement),
             userRepository,
+            new NoopApplicationTransactionFactory(),
             CancellationToken.None);
 
         var winnerBalanceAfterFirst = winner.CurrentBalanceCc;
@@ -120,6 +125,7 @@ public sealed class SettleChampionHandlerTests
             championBetRepository,
             new StubTournamentSettlementRepository(settlement),
             userRepository,
+            new NoopApplicationTransactionFactory(),
             CancellationToken.None);
 
         Assert.True(first.IsSuccess);

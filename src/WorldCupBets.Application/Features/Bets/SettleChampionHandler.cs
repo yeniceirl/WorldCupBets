@@ -1,3 +1,4 @@
+using WorldCupBets.Application.Abstractions;
 using WorldCupBets.Domain.Common;
 using WorldCupBets.Domain.Entities;
 using WorldCupBets.Domain.Repositories;
@@ -11,8 +12,11 @@ public sealed class SettleChampionHandler
         IChampionBetRepository championBetRepository,
         ITournamentSettlementRepository tournamentSettlementRepository,
         IUserRepository userRepository,
+        IApplicationTransactionFactory transactionFactory,
         CancellationToken cancellationToken)
     {
+        await using var transaction = await transactionFactory.BeginSerializableAsync(cancellationToken);
+
         if (string.IsNullOrWhiteSpace(command.ChampionTeamName))
         {
             return Result<SettleChampionResultDto>.Failure(new Error("bets.champion_required", "Champion team name is required."));
@@ -62,6 +66,7 @@ public sealed class SettleChampionHandler
         var nowUtc = DateTime.UtcNow;
         settlement.MarkChampionSettled(championTeamName, nowUtc, undistributedJackpotCc);
         await userRepository.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
         return Result<SettleChampionResultDto>.Success(new SettleChampionResultDto(
             settlement.ChampionTeamName ?? championTeamName,

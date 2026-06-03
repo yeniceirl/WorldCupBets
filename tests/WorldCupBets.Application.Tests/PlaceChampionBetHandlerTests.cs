@@ -1,4 +1,5 @@
 using System.Reflection;
+using WorldCupBets.Application.Abstractions;
 using WorldCupBets.Application.Features.Bets;
 using WorldCupBets.Domain.Common;
 using WorldCupBets.Domain.Entities;
@@ -20,6 +21,7 @@ public sealed class PlaceChampionBetHandlerTests
             new StubUserRepository(user),
             new StubMatchRepository(["Argentina", "Japan"], new DateTime(2026, 6, 30, 18, 0, 0, DateTimeKind.Utc)),
             new StubChampionBetRepository(),
+            new NoopApplicationTransactionFactory(),
             CancellationToken.None);
 
         Assert.True(result.IsSuccess);
@@ -42,6 +44,7 @@ public sealed class PlaceChampionBetHandlerTests
             new StubUserRepository(user),
             new StubMatchRepository(["Argentina", "Japan"], new DateTime(2026, 6, 30, 18, 0, 0, DateTimeKind.Utc)),
             new StubChampionBetRepository(existingBet),
+            new NoopApplicationTransactionFactory(),
             CancellationToken.None);
 
         Assert.True(result.IsFailure);
@@ -59,6 +62,7 @@ public sealed class PlaceChampionBetHandlerTests
             new StubUserRepository(user),
             new StubMatchRepository(["Argentina", "Japan"], DateTime.UtcNow.AddMinutes(-1)),
             new StubChampionBetRepository(),
+            new NoopApplicationTransactionFactory(),
             CancellationToken.None);
 
         Assert.True(result.IsFailure);
@@ -77,6 +81,7 @@ public sealed class PlaceChampionBetHandlerTests
             new StubUserRepository(user),
             new StubMatchRepository(["Argentina", "Japan"], new DateTime(2026, 6, 30, 18, 0, 0, DateTimeKind.Utc)),
             new StubChampionBetRepository(),
+            new NoopApplicationTransactionFactory(),
             CancellationToken.None);
 
         Assert.True(result.IsSuccess);
@@ -149,6 +154,11 @@ public sealed class PlaceChampionBetHandlerTests
         }
 
         public Task<IReadOnlyList<Match>> ListGroupStageFixturesAsync(CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<IReadOnlySet<int>> ListMatchIdsWithBetsAsync(IEnumerable<int> matchIds, CancellationToken cancellationToken = default)
         {
             throw new NotSupportedException();
         }

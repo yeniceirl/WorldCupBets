@@ -27,6 +27,7 @@ public sealed class MatchConfiguration : IEntityTypeConfiguration<Match>
             .HasConversion<string>()
             .HasMaxLength(16);
         builder.Property(match => match.SettledAtUtc);
+        builder.Property(match => match.Version).IsConcurrencyToken().IsRequired();
         builder.HasIndex(match => new { match.Phase, match.GroupName, match.HomeTeamName, match.AwayTeamName });
 
         builder.HasData(
@@ -43,7 +44,8 @@ public sealed class MatchConfiguration : IEntityTypeConfiguration<Match>
                 SourceMatchId = (string?)null,
                 SourceSyncedAtUtc = (DateTime?)null,
                 OfficialResult = (MatchBetSelection?)null,
-                SettledAtUtc = (DateTime?)null
+                SettledAtUtc = (DateTime?)null,
+                Version = 0
             },
             new
             {
@@ -58,7 +60,8 @@ public sealed class MatchConfiguration : IEntityTypeConfiguration<Match>
                 SourceMatchId = (string?)null,
                 SourceSyncedAtUtc = (DateTime?)null,
                 OfficialResult = (MatchBetSelection?)null,
-                SettledAtUtc = (DateTime?)null
+                SettledAtUtc = (DateTime?)null,
+                Version = 0
             },
             new
             {
@@ -73,7 +76,8 @@ public sealed class MatchConfiguration : IEntityTypeConfiguration<Match>
                 SourceMatchId = (string?)null,
                 SourceSyncedAtUtc = (DateTime?)null,
                 OfficialResult = (MatchBetSelection?)null,
-                SettledAtUtc = (DateTime?)null
+                SettledAtUtc = (DateTime?)null,
+                Version = 0
             });
     }
 }

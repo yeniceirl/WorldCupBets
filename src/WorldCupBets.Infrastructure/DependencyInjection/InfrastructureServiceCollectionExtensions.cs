@@ -31,6 +31,7 @@ public static class InfrastructureServiceCollectionExtensions
             ?? "Host=localhost;Database=worldcupbets;Username=app;Password=placeholder";
 
         services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
+        services.AddScoped<IApplicationTransactionFactory, EfApplicationTransactionFactory>();
         services.AddScoped<IMatchRepository, MatchRepository>();
         services.AddScoped<IMatchBetRepository, MatchBetRepository>();
         services.AddScoped<IChampionBetRepository, ChampionBetRepository>();

@@ -1,4 +1,5 @@
 using System.Reflection;
+using WorldCupBets.Application.Abstractions;
 using WorldCupBets.Application.Features.Leaderboard;
 using WorldCupBets.Application.Features.Matches;
 using WorldCupBets.Domain.Common;
@@ -74,6 +75,7 @@ public sealed class GetLeaderboardHandlerTests
                 CreateBet(loser, match, MatchBetSelection.Away)),
             new StubTournamentSettlementRepository(TournamentSettlement.CreateSingleton()),
             userRepository,
+            new NoopApplicationTransactionFactory(),
             CancellationToken.None);
 
         var result = await GetLeaderboardHandler.Handle(
@@ -163,6 +165,11 @@ public sealed class GetLeaderboardHandlerTests
         public Task<IReadOnlyList<Match>> ListGroupStageFixturesAsync(CancellationToken cancellationToken = default)
         {
             return Task.FromResult<IReadOnlyList<Match>>(matches.Where(match => match.Phase == MatchPhase.GroupStage).ToArray());
+        }
+
+        public Task<IReadOnlySet<int>> ListMatchIdsWithBetsAsync(IEnumerable<int> matchIds, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlySet<int>>(new HashSet<int>());
         }
 
         public Task<Match?> GetByIdAsync(int matchId, CancellationToken cancellationToken = default)

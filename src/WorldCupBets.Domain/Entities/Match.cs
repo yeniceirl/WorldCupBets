@@ -42,6 +42,8 @@ public sealed class Match : Entity
 
     public DateTime? SettledAtUtc { get; private set; }
 
+    public int Version { get; private set; }
+
     public static Match Create(MatchPhase phase, string homeTeamName, string awayTeamName, DateTime startsAtUtc, string venue)
     {
         return new Match(phase, homeTeamName, awayTeamName, startsAtUtc, venue);
@@ -75,6 +77,21 @@ public sealed class Match : Entity
         }
 
         StartsAtUtc = startsAtUtc;
+        Venue = venue;
+        SetSource(sourceProvider, sourceMatchId, sourceSyncedAtUtc);
+    }
+
+    public void UpdateGroupStageFixtureMetadata(
+        string venue,
+        string sourceProvider,
+        string sourceMatchId,
+        DateTime sourceSyncedAtUtc)
+    {
+        if (Phase != MatchPhase.GroupStage)
+        {
+            throw new InvalidOperationException("Only group stage fixtures can be updated from external football data.");
+        }
+
         Venue = venue;
         SetSource(sourceProvider, sourceMatchId, sourceSyncedAtUtc);
     }

@@ -1,3 +1,4 @@
+using WorldCupBets.Application.Abstractions;
 using WorldCupBets.Domain.Common;
 using WorldCupBets.Domain.Entities;
 using WorldCupBets.Domain.Repositories;
@@ -12,8 +13,11 @@ public sealed class RecordMatchResultHandler
         IMatchBetRepository matchBetRepository,
         ITournamentSettlementRepository tournamentSettlementRepository,
         IUserRepository userRepository,
+        IApplicationTransactionFactory transactionFactory,
         CancellationToken cancellationToken)
     {
+        await using var transaction = await transactionFactory.BeginSerializableAsync(cancellationToken);
+
         var match = await matchRepository.GetByIdForSettlementAsync(command.MatchId, cancellationToken);
         if (match is null)
         {
@@ -61,6 +65,7 @@ public sealed class RecordMatchResultHandler
         match.MarkSettled(nowUtc);
         var settledAtUtc = match.SettledAtUtc ?? nowUtc;
         await userRepository.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
         return Result<RecordMatchResultDto>.Success(new RecordMatchResultDto(
             match.Id,

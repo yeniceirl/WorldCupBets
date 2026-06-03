@@ -111,6 +111,11 @@ public sealed class MatchRulesTests
             return Task.FromResult<IReadOnlyList<Match>>(matches.Where(match => match.Phase == MatchPhase.GroupStage).ToArray());
         }
 
+        public Task<IReadOnlySet<int>> ListMatchIdsWithBetsAsync(IEnumerable<int> matchIds, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlySet<int>>(new HashSet<int>());
+        }
+
         public Task<Match?> GetByIdAsync(int matchId, CancellationToken cancellationToken = default)
         {
             return Task.FromResult(matches.SingleOrDefault(match => match.Id == matchId));

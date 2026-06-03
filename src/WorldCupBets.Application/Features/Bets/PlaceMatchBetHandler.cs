@@ -1,3 +1,4 @@
+using WorldCupBets.Application.Abstractions;
 using WorldCupBets.Domain.Common;
 using WorldCupBets.Domain.Entities;
 using WorldCupBets.Domain.Repositories;
@@ -11,8 +12,11 @@ public sealed class PlaceMatchBetHandler
         IUserRepository userRepository,
         IMatchRepository matchRepository,
         IMatchBetRepository matchBetRepository,
+        IApplicationTransactionFactory transactionFactory,
         CancellationToken cancellationToken)
     {
+        await using var transaction = await transactionFactory.BeginSerializableAsync(cancellationToken);
+
         var user = await userRepository.GetByIdAsync(command.UserId, cancellationToken);
         if (user is null)
         {
@@ -36,6 +40,7 @@ public sealed class PlaceMatchBetHandler
         {
             existingMatchBet.ChangeSelection(command.Selection);
             await userRepository.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
 
             return Result<PlaceMatchBetResultDto>.Success(new PlaceMatchBetResultDto(
                 command.MatchId,
@@ -56,6 +61,7 @@ public sealed class PlaceMatchBetHandler
         var matchBet = MatchBet.Create(command.UserId, command.MatchId, command.Selection, stakeAmountCc, nowUtc);
         await matchBetRepository.AddAsync(matchBet, cancellationToken);
         await userRepository.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
         return Result<PlaceMatchBetResultDto>.Success(new PlaceMatchBetResultDto(
             command.MatchId,

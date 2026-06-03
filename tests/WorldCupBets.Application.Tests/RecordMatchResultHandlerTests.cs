@@ -1,4 +1,5 @@
 using System.Reflection;
+using WorldCupBets.Application.Abstractions;
 using WorldCupBets.Application.Features.Matches;
 using WorldCupBets.Domain.Common;
 using WorldCupBets.Domain.Entities;
@@ -24,6 +25,7 @@ public sealed class RecordMatchResultHandlerTests
             new StubMatchBetRepository(bet),
             new StubTournamentSettlementRepository(settlement),
             userRepository,
+            new NoopApplicationTransactionFactory(),
             CancellationToken.None);
 
         Assert.True(result.IsSuccess);
@@ -47,6 +49,7 @@ public sealed class RecordMatchResultHandlerTests
             new StubMatchBetRepository(bet),
             new StubTournamentSettlementRepository(TournamentSettlement.CreateSingleton()),
             new StubUserRepository(user),
+            new NoopApplicationTransactionFactory(),
             CancellationToken.None);
 
         Assert.True(result.IsFailure);
@@ -74,6 +77,7 @@ public sealed class RecordMatchResultHandlerTests
                 CreateBet(loser, match, MatchBetSelection.Away)),
             new StubTournamentSettlementRepository(settlement),
             new StubUserRepository(winnerOne, winnerTwo, loser),
+            new NoopApplicationTransactionFactory(),
             CancellationToken.None);
 
         Assert.True(result.IsSuccess);
@@ -100,6 +104,7 @@ public sealed class RecordMatchResultHandlerTests
                 CreateBet(userTwo, match, MatchBetSelection.Draw)),
             new StubTournamentSettlementRepository(settlement),
             new StubUserRepository(userOne, userTwo),
+            new NoopApplicationTransactionFactory(),
             CancellationToken.None);
 
         Assert.True(result.IsSuccess);
@@ -124,6 +129,7 @@ public sealed class RecordMatchResultHandlerTests
                 CreateBet(userTwo, match, MatchBetSelection.Away)),
             new StubTournamentSettlementRepository(settlement),
             new StubUserRepository(userOne, userTwo),
+            new NoopApplicationTransactionFactory(),
             CancellationToken.None);
 
         Assert.True(result.IsSuccess);
@@ -151,6 +157,7 @@ public sealed class RecordMatchResultHandlerTests
             matchBetRepository,
             new StubTournamentSettlementRepository(settlement),
             userRepository,
+            new NoopApplicationTransactionFactory(),
             CancellationToken.None);
 
         var winnerBalanceAfterFirst = winner.CurrentBalanceCc;
@@ -163,6 +170,7 @@ public sealed class RecordMatchResultHandlerTests
             matchBetRepository,
             new StubTournamentSettlementRepository(settlement),
             userRepository,
+            new NoopApplicationTransactionFactory(),
             CancellationToken.None);
 
         Assert.True(first.IsSuccess);
@@ -226,6 +234,11 @@ public sealed class RecordMatchResultHandlerTests
         public Task<IReadOnlyList<Match>> ListGroupStageFixturesAsync(CancellationToken cancellationToken = default)
         {
             return Task.FromResult<IReadOnlyList<Match>>(matches.Where(match => match.Phase == MatchPhase.GroupStage).ToArray());
+        }
+
+        public Task<IReadOnlySet<int>> ListMatchIdsWithBetsAsync(IEnumerable<int> matchIds, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlySet<int>>(new HashSet<int>());
         }
 
         public Task<Match?> GetByIdAsync(int matchId, CancellationToken cancellationToken = default)

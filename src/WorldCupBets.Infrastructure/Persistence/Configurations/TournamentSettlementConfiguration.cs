@@ -15,5 +15,6 @@ public sealed class TournamentSettlementConfiguration : IEntityTypeConfiguration
         builder.Property(settlement => settlement.ChampionTeamName).HasMaxLength(100);
         builder.Property(settlement => settlement.ChampionSettledAtUtc);
         builder.Property(settlement => settlement.UndistributedJackpotCc).IsRequired();
+        builder.Property(settlement => settlement.Version).IsConcurrencyToken().IsRequired();
     }
 }

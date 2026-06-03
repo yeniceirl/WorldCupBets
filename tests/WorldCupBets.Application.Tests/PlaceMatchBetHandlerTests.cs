@@ -1,4 +1,5 @@
 using System.Reflection;
+using WorldCupBets.Application.Abstractions;
 using WorldCupBets.Application.Features.Bets;
 using WorldCupBets.Domain.Common;
 using WorldCupBets.Domain.Entities;
@@ -26,6 +27,7 @@ public sealed class PlaceMatchBetHandlerTests
             userRepository,
             matchRepository,
             matchBetRepository,
+            new NoopApplicationTransactionFactory(),
             CancellationToken.None);
 
         Assert.True(result.IsSuccess);
@@ -53,6 +55,7 @@ public sealed class PlaceMatchBetHandlerTests
             new StubUserRepository(user),
             new StubMatchRepository(match),
             matchBetRepository,
+            new NoopApplicationTransactionFactory(),
             CancellationToken.None);
 
         Assert.True(result.IsSuccess);
@@ -75,10 +78,34 @@ public sealed class PlaceMatchBetHandlerTests
             new StubUserRepository(user),
             new StubMatchRepository(match),
             new StubMatchBetRepository(),
+            new NoopApplicationTransactionFactory(),
             CancellationToken.None);
 
         Assert.True(result.IsFailure);
         Assert.Equal("bets.match_betting_closed", result.Error?.Code);
+        Assert.Equal(User.InitialBalanceCc, user.CurrentBalanceCc);
+    }
+
+    [Fact]
+    public async Task Handle_Rejects_Changing_Existing_Bet_When_Betting_Is_Closed()
+    {
+        var user = User.Create("google-1", "ada@example.com", "Ada");
+        SetEntityId(user, 10);
+        var match = Match.Create(MatchPhase.GroupStage, "Argentina", "Japan", DateTime.UtcNow.AddMinutes(-6), "MetLife Stadium");
+        SetEntityId(match, 20);
+        var existingBet = MatchBet.Create(user.Id, match.Id, MatchBetSelection.Draw, 5, DateTime.UtcNow.AddMinutes(-10));
+
+        var result = await PlaceMatchBetHandler.Handle(
+            new PlaceMatchBetCommand(user.Id, match.Id, MatchBetSelection.Home),
+            new StubUserRepository(user),
+            new StubMatchRepository(match),
+            new StubMatchBetRepository(existingBet),
+            new NoopApplicationTransactionFactory(),
+            CancellationToken.None);
+
+        Assert.True(result.IsFailure);
+        Assert.Equal("bets.match_betting_closed", result.Error?.Code);
+        Assert.Equal(MatchBetSelection.Draw, existingBet.Selection);
         Assert.Equal(User.InitialBalanceCc, user.CurrentBalanceCc);
     }
 
@@ -98,6 +125,7 @@ public sealed class PlaceMatchBetHandlerTests
             new StubUserRepository(user),
             new StubMatchRepository(match),
             matchBetRepository,
+            new NoopApplicationTransactionFactory(),
             CancellationToken.None);
 
         Assert.True(result.IsFailure);
@@ -119,6 +147,7 @@ public sealed class PlaceMatchBetHandlerTests
             new StubUserRepository(user),
             new StubMatchRepository(match),
             new StubMatchBetRepository(),
+            new NoopApplicationTransactionFactory(),
             CancellationToken.None);
 
         Assert.True(result.IsSuccess);
@@ -195,6 +224,11 @@ public sealed class PlaceMatchBetHandlerTests
         public Task<IReadOnlyList<Match>> ListGroupStageFixturesAsync(CancellationToken cancellationToken = default)
         {
             return Task.FromResult<IReadOnlyList<Match>>(matches.Where(match => match.Phase == MatchPhase.GroupStage).ToArray());
+        }
+
+        public Task<IReadOnlySet<int>> ListMatchIdsWithBetsAsync(IEnumerable<int> matchIds, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlySet<int>>(new HashSet<int>());
         }
 
         public Task<Match?> GetByIdAsync(int matchId, CancellationToken cancellationToken = default)

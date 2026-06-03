@@ -32,6 +32,8 @@ public sealed class User : Entity
 
     public int RescueDebtCc { get; private set; }
 
+    public int Version { get; private set; }
+
     public ICollection<UserRole> UserRoles { get; private set; } = [];
 
     public static User Create(string googleSubject, string email, string displayName)

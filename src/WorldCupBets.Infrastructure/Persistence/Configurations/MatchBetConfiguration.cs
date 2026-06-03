@@ -16,6 +16,7 @@ public sealed class MatchBetConfiguration : IEntityTypeConfiguration<MatchBet>
             .IsRequired();
         builder.Property(matchBet => matchBet.StakeAmountCc).IsRequired();
         builder.Property(matchBet => matchBet.PlacedAtUtc).IsRequired();
+        builder.Property(matchBet => matchBet.Version).IsConcurrencyToken().IsRequired();
 
         builder.HasIndex(matchBet => new { matchBet.UserId, matchBet.MatchId }).IsUnique();
 

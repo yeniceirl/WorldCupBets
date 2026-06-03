@@ -16,6 +16,7 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(user => user.CurrentBalanceCc).IsRequired();
         builder.Property(user => user.RescueCount).IsRequired();
         builder.Property(user => user.RescueDebtCc).IsRequired();
+        builder.Property(user => user.Version).IsConcurrencyToken().IsRequired();
         builder.HasIndex(user => user.GoogleSubject).IsUnique();
         builder.HasIndex(user => user.Email).IsUnique();
 
@@ -28,7 +29,8 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
                 DisplayName = "Maple Moose",
                 CurrentBalanceCc = 1325,
                 RescueCount = 0,
-                RescueDebtCc = 0
+                RescueDebtCc = 0,
+                Version = 0
             },
             new
             {
@@ -38,7 +40,8 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
                 DisplayName = "Zayu Jaguar",
                 CurrentBalanceCc = 1180,
                 RescueCount = 0,
-                RescueDebtCc = 0
+                RescueDebtCc = 0,
+                Version = 0
             },
             new
             {
@@ -48,7 +51,8 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
                 DisplayName = "Clutch Eagle",
                 CurrentBalanceCc = 1110,
                 RescueCount = 1,
-                RescueDebtCc = 100
+                RescueDebtCc = 100,
+                Version = 0
             },
             new
             {
@@ -58,7 +62,8 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
                 DisplayName = "Lucia del Gol",
                 CurrentBalanceCc = 990,
                 RescueCount = 0,
-                RescueDebtCc = 0
+                RescueDebtCc = 0,
+                Version = 0
             },
             new
             {
@@ -68,7 +73,8 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
                 DisplayName = "Takeshi Bracket",
                 CurrentBalanceCc = 845,
                 RescueCount = 2,
-                RescueDebtCc = 200
+                RescueDebtCc = 200,
+                Version = 0
             },
             new
             {
@@ -78,7 +84,8 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
                 DisplayName = "Nora Finalista",
                 CurrentBalanceCc = 760,
                 RescueCount = 0,
-                RescueDebtCc = 0
+                RescueDebtCc = 0,
+                Version = 0
             });
     }
 }

@@ -278,6 +278,11 @@ public sealed class PlaceMatchBetHandlerTests
             return Task.FromResult<IReadOnlyList<MatchBet>>(Stored.Where(matchBet => matchBet.MatchId == matchId).ToArray());
         }
 
+        public Task<IReadOnlyDictionary<int, int>> ListPendingStakeAmountsByUserAsync(CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
         public Task AddAsync(MatchBet matchBet, CancellationToken cancellationToken = default)
         {
             AddCalls++;

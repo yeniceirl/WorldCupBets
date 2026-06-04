@@ -66,7 +66,7 @@ public static class AuthEndpoints
             IJwtTokenGenerator jwtTokenGenerator,
             CancellationToken cancellationToken) =>
         {
-            if (!hostEnvironment.IsDevelopment() || !authOptions.Value.EnableDevLogin)
+            if ((!hostEnvironment.IsDevelopment() && !hostEnvironment.IsStaging()) || !authOptions.Value.EnableDevLogin)
             {
                 return Results.NotFound();
             }

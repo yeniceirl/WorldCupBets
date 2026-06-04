@@ -20,4 +20,11 @@ public sealed class TournamentSettlementRepository(AppDbContext dbContext) : ITo
         await dbContext.TournamentSettlements.AddAsync(settlement, cancellationToken);
         return settlement;
     }
+
+    public Task<bool> IsChampionSettledAsync(CancellationToken cancellationToken = default)
+    {
+        return dbContext.TournamentSettlements
+            .AsNoTracking()
+            .AnyAsync(item => item.Id == TournamentSettlement.SingletonId && item.ChampionSettledAtUtc != null, cancellationToken);
+    }
 }

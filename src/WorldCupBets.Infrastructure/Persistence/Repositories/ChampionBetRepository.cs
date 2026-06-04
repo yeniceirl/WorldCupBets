@@ -23,6 +23,15 @@ public sealed class ChampionBetRepository(AppDbContext dbContext) : IChampionBet
             .ToArrayAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyDictionary<int, int>> ListStakeAmountsByUserAsync(CancellationToken cancellationToken = default)
+    {
+        return await dbContext.ChampionBets
+            .AsNoTracking()
+            .GroupBy(championBet => championBet.UserId)
+            .Select(group => new { UserId = group.Key, StakeAmountCc = group.Sum(championBet => championBet.StakeAmountCc) })
+            .ToDictionaryAsync(item => item.UserId, item => item.StakeAmountCc, cancellationToken);
+    }
+
     public Task AddAsync(ChampionBet championBet, CancellationToken cancellationToken = default)
     {
         return dbContext.ChampionBets.AddAsync(championBet, cancellationToken).AsTask();

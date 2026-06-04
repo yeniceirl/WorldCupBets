@@ -11,7 +11,7 @@ import type { LeaderboardItem } from "./leaderboard.models";
           <div>
             <p class="text-sm font-bold uppercase tracking-[0.24em] text-sky-700 dark:text-sky-300">CopaCoin leaderboard</p>
             <h1 class="mt-2 text-4xl font-black tracking-tight text-slate-950 dark:text-white">Current standings</h1>
-            <p class="mt-3 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">Balances include settled match payouts, champion payouts, refunds, and rescue adjustments.</p>
+            <p class="mt-3 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">Balances show settled CopaCoin only. Open bets stay visible as pending until the result is known.</p>
           </div>
           <img class="mx-auto h-36 w-36 object-contain drop-shadow-xl lg:mx-0" src="/assets/brand/leaderboard-mascot.webp" alt="CopaCoin leaderboard mascot" />
         </div>
@@ -45,7 +45,12 @@ import type { LeaderboardItem } from "./leaderboard.models";
                 <h2 class="font-bold text-slate-950 dark:text-white">{{ item.displayName }}</h2>
                 <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Current balance</p>
               </div>
-              <p class="text-lg font-black text-slate-950 dark:text-white">{{ item.currentBalanceCc }} CC</p>
+              <div class="text-right">
+                <p class="text-lg font-black text-slate-950 dark:text-white">{{ item.currentBalanceCc }} CC</p>
+                @if (item.pendingStakeAmountCc > 0) {
+                  <p class="mt-1 rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700 dark:bg-amber-950 dark:text-amber-200">{{ item.pendingStakeAmountCc }} CC pending</p>
+                }
+              </div>
             </article>
           }
         </section>

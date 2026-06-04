@@ -12,111 +12,114 @@ namespace WorldCupBets.WebApi.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddWebApiServices(this IServiceCollection services, IConfiguration configuration)
+    extension(IServiceCollection services)
     {
-        services.Configure<JwtOptions>(configuration.GetSection("Jwt"));
-        services.Configure<GoogleOptions>(configuration.GetSection("Google"));
-        services.Configure<AuthOptions>(configuration.GetSection("Auth"));
-        services.AddWebApiTelemetry(configuration);
-
-        var jwtOptions = configuration.GetSection("Jwt").Get<JwtOptions>() ?? new JwtOptions();
-        jwtOptions.Validate();
-
-        services.AddEndpointsApiExplorer();
-        services.AddSwaggerGen(options =>
+        public IServiceCollection AddWebApiServices(IConfiguration configuration)
         {
-            options.AddSecurityDefinition(JwtBearerDefaults.AuthenticationScheme, new OpenApiSecurityScheme
-            {
-                Name = "Authorization",
-                Type = SecuritySchemeType.Http,
-                Scheme = "bearer",
-                BearerFormat = "JWT",
-                In = ParameterLocation.Header,
-                Description = "Enter a valid JWT bearer token."
-            });
+            _ = services.Configure<JwtOptions>(configuration.GetSection("Jwt"));
+            _ = services.Configure<GoogleOptions>(configuration.GetSection("Google"));
+            _ = services.Configure<AuthOptions>(configuration.GetSection("Auth"));
+            _ = services.AddWebApiTelemetry(configuration);
 
-            options.AddSecurityRequirement(_ => new OpenApiSecurityRequirement
+            var jwtOptions = configuration.GetSection("Jwt").Get<JwtOptions>() ?? new JwtOptions();
+            jwtOptions.Validate();
+
+            services.AddEndpointsApiExplorer();
+            services.AddSwaggerGen(options =>
             {
+                options.AddSecurityDefinition(JwtBearerDefaults.AuthenticationScheme, new OpenApiSecurityScheme
                 {
-                    new OpenApiSecuritySchemeReference(JwtBearerDefaults.AuthenticationScheme, _),
-                    []
-                }
-            });
-        });
-        services.AddHealthChecks();
+                    Name = "Authorization",
+                    Type = SecuritySchemeType.Http,
+                    Scheme = "bearer",
+                    BearerFormat = "JWT",
+                    In = ParameterLocation.Header,
+                    Description = "Enter a valid JWT bearer token."
+                });
 
-        services
-            .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer(options =>
-            {
-                options.RequireHttpsMetadata = false;
-                options.TokenValidationParameters = new TokenValidationParameters
+                options.AddSecurityRequirement(d => new OpenApiSecurityRequirement
                 {
-                    ValidateAudience = true,
-                    ValidateIssuer = true,
-                    ValidateIssuerSigningKey = true,
-                    ValidateLifetime = true,
-                    ValidIssuer = jwtOptions.Issuer,
-                    ValidAudience = jwtOptions.Audience,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Secret)),
-                    ClockSkew = TimeSpan.FromMinutes(1)
-                };
+                    {
+                        new OpenApiSecuritySchemeReference(JwtBearerDefaults.AuthenticationScheme, d),
+                        []
+                    }
+                });
+            });
+            services.AddHealthChecks();
+
+            services
+                .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddJwtBearer(options =>
+                {
+                    options.RequireHttpsMetadata = false;
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateAudience = true,
+                        ValidateIssuer = true,
+                        ValidateIssuerSigningKey = true,
+                        ValidateLifetime = true,
+                        ValidIssuer = jwtOptions.Issuer,
+                        ValidAudience = jwtOptions.Audience,
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Secret)),
+                        ClockSkew = TimeSpan.FromMinutes(1)
+                    };
+                });
+
+            services.AddAuthorization(options =>
+            {
+                options.AddPolicy("Admin", policy => policy.RequireRole("Admin"));
+                options.AddPolicy("Bettor", policy => policy.RequireRole("Admin", "Bettor"));
             });
 
-        services.AddAuthorization(options =>
+            return services;
+        }
+
+        private IServiceCollection AddWebApiTelemetry(IConfiguration configuration)
         {
-            options.AddPolicy("Admin", policy => policy.RequireRole("Admin"));
-            options.AddPolicy("Bettor", policy => policy.RequireRole("Admin", "Bettor"));
-        });
+            var serviceName = configuration["OTEL_SERVICE_NAME"] ?? "WorldCupBets.WebApi";
+            var hasOtlpEndpoint = !string.IsNullOrWhiteSpace(configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]);
 
-        return services;
-    }
-
-    private static IServiceCollection AddWebApiTelemetry(this IServiceCollection services, IConfiguration configuration)
-    {
-        var serviceName = configuration["OTEL_SERVICE_NAME"] ?? "WorldCupBets.WebApi";
-        var hasOtlpEndpoint = !string.IsNullOrWhiteSpace(configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]);
-
-        services.AddLogging(logging =>
-        {
-            logging.AddOpenTelemetry(options =>
+            services.AddLogging(logging =>
             {
-                options.IncludeFormattedMessage = true;
-                options.IncludeScopes = true;
-                options.ParseStateValues = true;
-                options.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(serviceName));
-
-                if (hasOtlpEndpoint)
+                logging.AddOpenTelemetry(options =>
                 {
-                    options.AddOtlpExporter();
-                }
-            });
-        });
+                    options.IncludeFormattedMessage = true;
+                    options.IncludeScopes = true;
+                    options.ParseStateValues = true;
+                    options.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(serviceName));
 
-        services.AddOpenTelemetry()
-            .ConfigureResource(resource => resource.AddService(serviceName))
-            .WithTracing(tracing =>
-            {
-                tracing.AddAspNetCoreInstrumentation();
-                tracing.AddHttpClientInstrumentation();
-
-                if (hasOtlpEndpoint)
-                {
-                    tracing.AddOtlpExporter();
-                }
-            })
-            .WithMetrics(metrics =>
-            {
-                metrics.AddAspNetCoreInstrumentation();
-                metrics.AddHttpClientInstrumentation();
-                metrics.AddRuntimeInstrumentation();
-
-                if (hasOtlpEndpoint)
-                {
-                    metrics.AddOtlpExporter();
-                }
+                    if (hasOtlpEndpoint)
+                    {
+                        options.AddOtlpExporter();
+                    }
+                });
             });
 
-        return services;
+            services.AddOpenTelemetry()
+                .ConfigureResource(resource => resource.AddService(serviceName))
+                .WithTracing(tracing =>
+                {
+                    tracing.AddAspNetCoreInstrumentation();
+                    tracing.AddHttpClientInstrumentation();
+
+                    if (hasOtlpEndpoint)
+                    {
+                        tracing.AddOtlpExporter();
+                    }
+                })
+                .WithMetrics(metrics =>
+                {
+                    metrics.AddAspNetCoreInstrumentation();
+                    metrics.AddHttpClientInstrumentation();
+                    metrics.AddRuntimeInstrumentation();
+
+                    if (hasOtlpEndpoint)
+                    {
+                        metrics.AddOtlpExporter();
+                    }
+                });
+
+            return services;
+        }
     }
 }

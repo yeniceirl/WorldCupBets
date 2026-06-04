@@ -198,6 +198,11 @@ public sealed class PlaceChampionBetHandlerTests
             return Task.FromResult<IReadOnlyList<ChampionBet>>(championBets.ToArray());
         }
 
+        public Task<IReadOnlyDictionary<int, int>> ListStakeAmountsByUserAsync(CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
         public Task AddAsync(ChampionBet championBet, CancellationToken cancellationToken = default)
         {
             championBets.Add(championBet);

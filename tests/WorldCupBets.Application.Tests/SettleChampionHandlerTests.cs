@@ -182,6 +182,11 @@ public sealed class SettleChampionHandlerTests
             return Task.FromResult<IReadOnlyList<ChampionBet>>(championBets);
         }
 
+        public Task<IReadOnlyDictionary<int, int>> ListStakeAmountsByUserAsync(CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
         public Task AddAsync(ChampionBet championBet, CancellationToken cancellationToken = default)
         {
             throw new NotSupportedException();
@@ -193,6 +198,11 @@ public sealed class SettleChampionHandlerTests
         public Task<TournamentSettlement> GetOrCreateSingletonAsync(CancellationToken cancellationToken = default)
         {
             return Task.FromResult(settlement);
+        }
+
+        public Task<bool> IsChampionSettledAsync(CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
         }
     }
 

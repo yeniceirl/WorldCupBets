@@ -294,6 +294,11 @@ public sealed class RecordMatchResultHandlerTests
             return Task.FromResult<IReadOnlyList<MatchBet>>(matchBets.Where(matchBet => matchBet.MatchId == matchId).ToArray());
         }
 
+        public Task<IReadOnlyDictionary<int, int>> ListPendingStakeAmountsByUserAsync(CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
         public Task AddAsync(MatchBet matchBet, CancellationToken cancellationToken = default)
         {
             throw new NotSupportedException();
@@ -305,6 +310,11 @@ public sealed class RecordMatchResultHandlerTests
         public Task<TournamentSettlement> GetOrCreateSingletonAsync(CancellationToken cancellationToken = default)
         {
             return Task.FromResult(settlement);
+        }
+
+        public Task<bool> IsChampionSettledAsync(CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
         }
     }
 

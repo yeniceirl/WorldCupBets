@@ -10,5 +10,7 @@ public interface IChampionBetRepository
 
     Task<IReadOnlyList<ChampionBet>> ListForSettlementAsync(CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyDictionary<int, int>> ListStakeAmountsByUserAsync(CancellationToken cancellationToken = default);
+
     Task AddAsync(ChampionBet championBet, CancellationToken cancellationToken = default);
 }

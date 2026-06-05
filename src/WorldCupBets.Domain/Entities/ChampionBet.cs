@@ -8,7 +8,7 @@ public sealed class ChampionBet : Entity
     {
     }
 
-    private ChampionBet(int userId, string teamName, int stakeAmountCc, DateTime placedAtUtc)
+    private ChampionBet(int userId, string teamName, decimal stakeAmountCc, DateTime placedAtUtc)
     {
         UserId = userId;
         TeamName = teamName;
@@ -22,11 +22,11 @@ public sealed class ChampionBet : Entity
 
     public string TeamName { get; private set; } = string.Empty;
 
-    public int StakeAmountCc { get; private set; }
+    public decimal StakeAmountCc { get; private set; }
 
     public DateTime PlacedAtUtc { get; private set; }
 
-    public static ChampionBet Create(int userId, string teamName, int stakeAmountCc, DateTime placedAtUtc)
+    public static ChampionBet Create(int userId, string teamName, decimal stakeAmountCc, DateTime placedAtUtc)
     {
         return new ChampionBet(userId, teamName, stakeAmountCc, placedAtUtc);
     }

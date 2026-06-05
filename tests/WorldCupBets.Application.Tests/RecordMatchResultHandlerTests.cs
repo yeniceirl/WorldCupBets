@@ -65,7 +65,9 @@ public sealed class RecordMatchResultHandlerTests
         var match = CreateClosedMatch();
         var winnerOne = CreateUser(1, 995);
         var winnerTwo = CreateUser(2, 995);
-        var loser = CreateUser(3, 995);
+        var winnerThree = CreateUser(3, 995);
+        var loserOne = CreateUser(4, 995);
+        var loserTwo = CreateUser(5, 995);
         var settlement = TournamentSettlement.CreateSingleton();
 
         var result = await RecordMatchResultHandler.Handle(
@@ -74,18 +76,22 @@ public sealed class RecordMatchResultHandlerTests
             new StubMatchBetRepository(
                 CreateBet(winnerOne, match, MatchBetSelection.Home),
                 CreateBet(winnerTwo, match, MatchBetSelection.Home),
-                CreateBet(loser, match, MatchBetSelection.Away)),
+                CreateBet(winnerThree, match, MatchBetSelection.Home),
+                CreateBet(loserOne, match, MatchBetSelection.Away),
+                CreateBet(loserTwo, match, MatchBetSelection.Away)),
             new StubTournamentSettlementRepository(settlement),
-            new StubUserRepository(winnerOne, winnerTwo, loser),
+            new StubUserRepository(winnerOne, winnerTwo, winnerThree, loserOne, loserTwo),
             new NoopApplicationTransactionFactory(),
             CancellationToken.None);
 
         Assert.True(result.IsSuccess);
-        Assert.Equal(1002, winnerOne.CurrentBalanceCc);
-        Assert.Equal(1002, winnerTwo.CurrentBalanceCc);
-        Assert.Equal(995, loser.CurrentBalanceCc);
-        Assert.Equal(1, settlement.ChampionJackpotCc);
-        Assert.Equal(1, result.Value!.ChampionJackpotContributionCc);
+        Assert.Equal(1003.33m, winnerOne.CurrentBalanceCc);
+        Assert.Equal(1003.33m, winnerTwo.CurrentBalanceCc);
+        Assert.Equal(1003.33m, winnerThree.CurrentBalanceCc);
+        Assert.Equal(995m, loserOne.CurrentBalanceCc);
+        Assert.Equal(995m, loserTwo.CurrentBalanceCc);
+        Assert.Equal(0.01m, settlement.ChampionJackpotCc);
+        Assert.Equal(0.01m, result.Value!.ChampionJackpotContributionCc);
     }
 
     [Fact]
@@ -133,10 +139,10 @@ public sealed class RecordMatchResultHandlerTests
             CancellationToken.None);
 
         Assert.True(result.IsSuccess);
-        Assert.Equal(997, userOne.CurrentBalanceCc);
-        Assert.Equal(997, userTwo.CurrentBalanceCc);
-        Assert.Equal(6, settlement.ChampionJackpotCc);
-        Assert.Equal(6, result.Value!.ChampionJackpotContributionCc);
+        Assert.Equal(997.50m, userOne.CurrentBalanceCc);
+        Assert.Equal(997.50m, userTwo.CurrentBalanceCc);
+        Assert.Equal(5m, settlement.ChampionJackpotCc);
+        Assert.Equal(5m, result.Value!.ChampionJackpotContributionCc);
     }
 
     [Fact]
@@ -221,7 +227,7 @@ public sealed class RecordMatchResultHandlerTests
     private static void SetProperty(object target, string propertyName, object? value)
     {
         var property = target.GetType().GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-        property!.SetValue(target, value);
+        property!.SetValue(target, property.PropertyType == typeof(decimal) && value is not null ? Convert.ToDecimal(value) : value);
     }
 
     private sealed class StubMatchRepository(params Match[] matches) : IMatchRepository
@@ -294,7 +300,7 @@ public sealed class RecordMatchResultHandlerTests
             return Task.FromResult<IReadOnlyList<MatchBet>>(matchBets.Where(matchBet => matchBet.MatchId == matchId).ToArray());
         }
 
-        public Task<IReadOnlyDictionary<int, int>> ListPendingStakeAmountsByUserAsync(CancellationToken cancellationToken = default)
+        public Task<IReadOnlyDictionary<int, decimal>> ListPendingStakeAmountsByUserAsync(CancellationToken cancellationToken = default)
         {
             throw new NotSupportedException();
         }

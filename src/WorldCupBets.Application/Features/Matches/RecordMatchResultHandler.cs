@@ -7,6 +7,8 @@ namespace WorldCupBets.Application.Features.Matches;
 
 public sealed class RecordMatchResultHandler
 {
+    private const decimal CopaCoinScale = 100m;
+
     public static async Task<Result<RecordMatchResultDto>> Handle(
         RecordMatchResultCommand command,
         IMatchRepository matchRepository,
@@ -78,14 +80,14 @@ public sealed class RecordMatchResultHandler
             settledAtUtc));
     }
 
-    private static int ApplyPayouts(IReadOnlyCollection<MatchBet> winners, IReadOnlyCollection<MatchBet> losers)
+    private static decimal ApplyPayouts(IReadOnlyCollection<MatchBet> winners, IReadOnlyCollection<MatchBet> losers)
     {
         if (winners.Count == 0)
         {
-            var jackpotContributionCc = 0;
+            var jackpotContributionCc = 0m;
             foreach (var loser in losers)
             {
-                var refundCc = loser.StakeAmountCc / 2;
+                var refundCc = RoundDownToCents(loser.StakeAmountCc / 2m);
                 var residualCc = loser.StakeAmountCc - refundCc;
                 if (refundCc > 0)
                 {
@@ -105,12 +107,12 @@ public sealed class RecordMatchResultHandler
                 winner.User.CreditBalance(winner.StakeAmountCc);
             }
 
-            return 0;
+            return 0m;
         }
 
         var losingPoolCc = losers.Sum(loser => loser.StakeAmountCc);
-        var winnerProfitCc = losingPoolCc / winners.Count;
-        var jackpotRemainderCc = losingPoolCc % winners.Count;
+        var winnerProfitCc = RoundDownToCents(losingPoolCc / winners.Count);
+        var jackpotRemainderCc = losingPoolCc - (winnerProfitCc * winners.Count);
 
         foreach (var winner in winners)
         {
@@ -118,5 +120,10 @@ public sealed class RecordMatchResultHandler
         }
 
         return jackpotRemainderCc;
+    }
+
+    private static decimal RoundDownToCents(decimal amountCc)
+    {
+        return Math.Floor(amountCc * CopaCoinScale) / CopaCoinScale;
     }
 }

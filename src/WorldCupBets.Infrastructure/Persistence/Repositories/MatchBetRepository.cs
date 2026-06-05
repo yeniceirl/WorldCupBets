@@ -32,7 +32,7 @@ public sealed class MatchBetRepository(AppDbContext dbContext) : IMatchBetReposi
             .ToArrayAsync(cancellationToken);
     }
 
-    public async Task<IReadOnlyDictionary<int, int>> ListPendingStakeAmountsByUserAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyDictionary<int, decimal>> ListPendingStakeAmountsByUserAsync(CancellationToken cancellationToken = default)
     {
         return await dbContext.Set<MatchBet>()
             .AsNoTracking()

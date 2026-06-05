@@ -1,6 +1,7 @@
 import { DatePipe, NgTemplateOutlet } from "@angular/common";
 import { Component, computed, inject, signal } from "@angular/core";
 import { forkJoin } from "rxjs";
+import { formatCopaCoin } from "../../shared/copa-coin-format";
 import { MatchesService } from "./matches.service";
 import type {
 	ChampionBetMarket,
@@ -59,8 +60,14 @@ interface MatchDateGroup {
 			@if (showDashboard()) {
 				<section class="grid gap-4 lg:grid-cols-[1.1fr_1.4fr]">
 					<article class="rounded-2xl border border-slate-200 bg-white/90 p-6 shadow-sm dark:border-slate-700 dark:bg-slate-950/80" data-testid="wallet-card">
-						<p class="text-sm font-bold uppercase tracking-wide text-sky-700 dark:text-sky-300">Wallet</p>
-						<h2 class="mt-2 text-2xl font-black text-slate-950 dark:text-white">{{ userSummary()!.currentBalanceCc }} CC</h2>
+						<p class="text-sm font-bold uppercase tracking-wide text-sky-700 dark:text-sky-300">Total settled</p>
+						<h2 class="mt-2 text-2xl font-black text-slate-950 dark:text-white">{{ formatCopaCoin(realizedBalanceCc()) }} CC</h2>
+						<div class="mt-2 flex flex-wrap gap-2 text-xs font-bold">
+							@if (pendingStakeAmountCc() > 0) {
+								<p class="rounded-full bg-amber-50 px-3 py-1 text-amber-700 dark:bg-amber-950 dark:text-amber-200">{{ formatCopaCoin(pendingStakeAmountCc()) }} CC pending</p>
+							}
+							<p class="rounded-full bg-slate-100 px-3 py-1 text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ formatCopaCoin(availableBalanceCc()) }} CC available</p>
+						</div>
 						<p class="mt-2 text-sm text-slate-600 dark:text-slate-300">{{ userSummary()!.displayName }} · {{ userSummary()!.email }}</p>
 						<div class="mt-4 grid gap-3 sm:grid-cols-2">
 							<div class="rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-900">
@@ -69,14 +76,14 @@ interface MatchDateGroup {
 							</div>
 							<div class="rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-900">
 								<p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Rescue debt</p>
-								<p class="mt-1 text-lg font-semibold text-slate-950 dark:text-white" data-testid="wallet-rescue-debt">{{ userSummary()!.rescueDebtCc }} CC</p>
+								<p class="mt-1 text-lg font-semibold text-slate-950 dark:text-white" data-testid="wallet-rescue-debt">{{ formatCopaCoin(userSummary()!.rescueDebtCc) }} CC</p>
 							</div>
 						</div>
 					</article>
 
 					<article class="rounded-2xl border border-slate-200 bg-white/90 p-6 shadow-sm dark:border-slate-700 dark:bg-slate-950/80" data-testid="champion-market-card">
 						<p class="text-sm font-bold uppercase tracking-wide text-sky-700 dark:text-sky-300">Champion bet</p>
-						<h2 class="mt-2 text-2xl font-black text-slate-950 dark:text-white">{{ championMarket()!.stakeAmountCc }} CC</h2>
+						<h2 class="mt-2 text-2xl font-black text-slate-950 dark:text-white">{{ formatCopaCoin(championMarket()!.stakeAmountCc) }} CC</h2>
 						@if (championMarket()!.currentUserChampionTeamName) {
 							<p class="mt-3 inline-flex rounded-full bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700" data-testid="champion-current-pick">
 								Your champion pick: {{ championMarket()!.currentUserChampionTeamName }}
@@ -184,7 +191,7 @@ interface MatchDateGroup {
 									<p class="mt-2 text-sm text-slate-600 dark:text-slate-300">{{ match.venue }}</p>
 									<div class="mt-4 flex flex-wrap gap-2 text-sm">
 										<span class="rounded-full bg-sky-50 px-3 py-1 font-medium text-sky-700">
-											Stake: {{ match.stakeAmountCc }} CC
+											Stake: {{ formatCopaCoin(match.stakeAmountCc) }} CC
 										</span>
 										@if (match.currentUserBetSelection) {
 											<span class="rounded-full bg-emerald-50 px-3 py-1 font-medium text-emerald-700" [attr.data-testid]="'match-current-pick-' + match.id">
@@ -266,6 +273,7 @@ interface MatchDateGroup {
 })
 export class MatchesPageComponent {
 	private readonly matchesService = inject(MatchesService);
+	protected readonly formatCopaCoin = formatCopaCoin;
 	readonly betSelections: ReadonlyArray<MatchBetSelection> = ["Home", "Draw", "Away"];
 	readonly matchFilters: ReadonlyArray<MatchDayFilter> = ["Today", "Tomorrow", "All"];
 
@@ -283,6 +291,20 @@ export class MatchesPageComponent {
 	readonly showDashboard = computed(() => !this.isLoading() && !!this.userSummary() && !!this.championMarket());
 	readonly filteredMatches = computed(() => this.filterMatches(this.selectedMatchFilter()));
 	readonly groupedFilteredMatches = computed(() => this.groupMatchesByDate(this.filteredMatches()));
+	readonly placedMatchBets = computed(() => this.matches().filter((match) => !!match.currentUserBetSelection));
+	readonly pendingStakeAmountCc = computed(() => {
+		const pendingMatchStakeAmountCc = this.placedMatchBets()
+			.filter((match) => !match.isSettled)
+			.reduce((total, match) => total + match.stakeAmountCc, 0);
+		const championMarket = this.championMarket();
+		const pendingChampionStakeAmountCc = championMarket?.currentUserChampionTeamName && !championMarket.isSettled
+			? championMarket.stakeAmountCc
+			: 0;
+
+		return pendingMatchStakeAmountCc + pendingChampionStakeAmountCc;
+	});
+	readonly availableBalanceCc = computed(() => this.userSummary()?.currentBalanceCc ?? 0);
+	readonly realizedBalanceCc = computed(() => this.availableBalanceCc() + this.pendingStakeAmountCc());
 
 	constructor() {
 		this.loadPageData();
@@ -301,7 +323,7 @@ export class MatchesPageComponent {
 						? { ...match, currentUserBetSelection: result.selection }
 						: match,
 				));
-				this.successMessage.set(`Bet placed for ${this.getSelectionLabel(selection, placedMatch)}. Remaining balance: ${result.remainingBalanceCc} CC.`);
+				this.successMessage.set(`Bet placed for ${this.getSelectionLabel(selection, placedMatch)}. Remaining balance: ${formatCopaCoin(result.remainingBalanceCc)} CC.`);
 				this.refreshUserSummary();
 				this.submittingMatchId.set(null);
 			},
@@ -333,7 +355,7 @@ export class MatchesPageComponent {
 					});
 				}
 
-				this.successMessage.set(`Champion bet placed for ${result.teamName}. Remaining balance: ${result.remainingBalanceCc} CC.`);
+				this.successMessage.set(`Champion bet placed for ${result.teamName}. Remaining balance: ${formatCopaCoin(result.remainingBalanceCc)} CC.`);
 				this.selectedChampionTeamName.set("");
 				this.refreshUserSummary();
 				this.isSubmittingChampionBet.set(false);

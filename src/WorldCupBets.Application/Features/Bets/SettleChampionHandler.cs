@@ -7,6 +7,8 @@ namespace WorldCupBets.Application.Features.Bets;
 
 public sealed class SettleChampionHandler
 {
+    private const decimal CopaCoinScale = 100m;
+
     public static async Task<Result<SettleChampionResultDto>> Handle(
         SettleChampionCommand command,
         IChampionBetRepository championBetRepository,
@@ -55,8 +57,8 @@ public sealed class SettleChampionHandler
 
         var losingStakePoolCc = losers.Sum(bet => bet.StakeAmountCc);
         var distributableProfitPoolCc = checked(losingStakePoolCc + settlement.ChampionJackpotCc);
-        var profitSharePerWinnerCc = winners.Length == 0 ? 0 : distributableProfitPoolCc / winners.Length;
-        var undistributedJackpotCc = winners.Length == 0 ? distributableProfitPoolCc : distributableProfitPoolCc % winners.Length;
+        var profitSharePerWinnerCc = winners.Length == 0 ? 0m : RoundDownToCents(distributableProfitPoolCc / winners.Length);
+        var undistributedJackpotCc = winners.Length == 0 ? distributableProfitPoolCc : distributableProfitPoolCc - (profitSharePerWinnerCc * winners.Length);
 
         foreach (var winner in winners)
         {
@@ -79,5 +81,10 @@ public sealed class SettleChampionHandler
             PlaceChampionBetHandler.ChampionBetStakeAmountCc + profitSharePerWinnerCc,
             settlement.UndistributedJackpotCc,
             settlement.ChampionSettledAtUtc ?? nowUtc));
+    }
+
+    private static decimal RoundDownToCents(decimal amountCc)
+    {
+        return Math.Floor(amountCc * CopaCoinScale) / CopaCoinScale;
     }
 }

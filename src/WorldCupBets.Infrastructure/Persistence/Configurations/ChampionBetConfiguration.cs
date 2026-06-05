@@ -11,7 +11,7 @@ public sealed class ChampionBetConfiguration : IEntityTypeConfiguration<Champion
         builder.ToTable("champion_bets");
         builder.HasKey(championBet => championBet.Id);
         builder.Property(championBet => championBet.TeamName).HasMaxLength(100).IsRequired();
-        builder.Property(championBet => championBet.StakeAmountCc).IsRequired();
+        builder.Property(championBet => championBet.StakeAmountCc).HasColumnType("numeric(18,2)").IsRequired();
         builder.Property(championBet => championBet.PlacedAtUtc).IsRequired();
 
         builder.HasIndex(championBet => championBet.UserId).IsUnique();

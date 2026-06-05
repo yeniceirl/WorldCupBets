@@ -242,7 +242,7 @@ public sealed class PostgresConcurrencyHardeningTests(ITestOutputHelper output)
         return new AppDbContext(options);
     }
 
-    private static User CreateUser(string key, int balanceCc)
+    private static User CreateUser(string key, decimal balanceCc)
     {
         var user = User.Create($"google-{key}", $"{key}@example.com", key);
         SetProperty(user, nameof(User.CurrentBalanceCc), balanceCc);
@@ -252,7 +252,7 @@ public sealed class PostgresConcurrencyHardeningTests(ITestOutputHelper output)
     private static void SetProperty(object target, string propertyName, object? value)
     {
         var property = target.GetType().GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-        property!.SetValue(target, value);
+        property!.SetValue(target, property.PropertyType == typeof(decimal) && value is not null ? Convert.ToDecimal(value) : value);
     }
 
     private sealed record ConcurrencyAttempt(

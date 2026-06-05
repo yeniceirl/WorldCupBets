@@ -12,7 +12,7 @@ public interface IMatchBetRepository
 
     Task<IReadOnlyList<MatchBet>> ListByMatchForSettlementAsync(int matchId, CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyDictionary<int, int>> ListPendingStakeAmountsByUserAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyDictionary<int, decimal>> ListPendingStakeAmountsByUserAsync(CancellationToken cancellationToken = default);
 
     Task AddAsync(MatchBet matchBet, CancellationToken cancellationToken = default);
 }

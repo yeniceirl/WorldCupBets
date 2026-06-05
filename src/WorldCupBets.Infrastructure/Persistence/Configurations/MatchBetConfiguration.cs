@@ -14,7 +14,7 @@ public sealed class MatchBetConfiguration : IEntityTypeConfiguration<MatchBet>
             .HasConversion<string>()
             .HasMaxLength(16)
             .IsRequired();
-        builder.Property(matchBet => matchBet.StakeAmountCc).IsRequired();
+        builder.Property(matchBet => matchBet.StakeAmountCc).HasColumnType("numeric(18,2)").IsRequired();
         builder.Property(matchBet => matchBet.PlacedAtUtc).IsRequired();
         builder.Property(matchBet => matchBet.Version).IsConcurrencyToken().IsRequired();
 

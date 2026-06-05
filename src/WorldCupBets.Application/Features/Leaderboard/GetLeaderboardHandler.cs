@@ -16,7 +16,7 @@ public sealed class GetLeaderboardHandler
         var pendingMatchStakesByUser = await matchBetRepository.ListPendingStakeAmountsByUserAsync(cancellationToken);
         var championSettled = await tournamentSettlementRepository.IsChampionSettledAsync(cancellationToken);
         var pendingChampionStakesByUser = championSettled
-            ? new Dictionary<int, int>()
+            ? new Dictionary<int, decimal>()
             : await championBetRepository.ListStakeAmountsByUserAsync(cancellationToken);
 
         return users
@@ -28,6 +28,7 @@ public sealed class GetLeaderboardHandler
                 return new
                 {
                     user.DisplayName,
+                    AvailableBalanceCc = user.CurrentBalanceCc,
                     CurrentBalanceCc = checked(user.CurrentBalanceCc + pendingStakeAmountCc),
                     PendingStakeAmountCc = pendingStakeAmountCc
                 };
@@ -38,7 +39,8 @@ public sealed class GetLeaderboardHandler
                 index + 1,
                 item.DisplayName,
                 item.CurrentBalanceCc,
-                item.PendingStakeAmountCc))
+                item.PendingStakeAmountCc,
+                item.AvailableBalanceCc))
             .ToArray();
     }
 }

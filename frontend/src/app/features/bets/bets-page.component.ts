@@ -1,6 +1,7 @@
 import { DatePipe } from "@angular/common";
 import { Component, computed, inject, signal } from "@angular/core";
 import { forkJoin } from "rxjs";
+import { formatCopaCoin } from "../../shared/copa-coin-format";
 import { MatchesService } from "../matches/matches.service";
 import type { ChampionBetMarket, CurrentUserSummary, MatchBetSelection, MatchListItem } from "../matches/matches.models";
 
@@ -37,8 +38,14 @@ import type { ChampionBetMarket, CurrentUserSummary, MatchBetSelection, MatchLis
 			@if (!isLoading() && userSummary() && championMarket()) {
 				<section class="grid gap-4 md:grid-cols-3">
 					<article class="rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm dark:border-slate-700 dark:bg-slate-950/80">
-						<p class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Balance</p>
-						<p class="mt-2 text-3xl font-black text-slate-950 dark:text-white">{{ userSummary()!.currentBalanceCc }} CC</p>
+						<p class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Total settled</p>
+						<p class="mt-2 text-3xl font-black text-slate-950 dark:text-white">{{ formatCopaCoin(realizedBalanceCc()) }} CC</p>
+						<div class="mt-2 flex flex-wrap gap-2 text-xs font-bold">
+							@if (pendingStakeAmountCc() > 0) {
+								<p class="rounded-full bg-amber-50 px-3 py-1 text-amber-700 dark:bg-amber-950 dark:text-amber-200">{{ formatCopaCoin(pendingStakeAmountCc()) }} CC pending</p>
+							}
+							<p class="rounded-full bg-slate-100 px-3 py-1 text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ formatCopaCoin(availableBalanceCc()) }} CC available</p>
+						</div>
 						<p class="mt-2 text-sm text-slate-600 dark:text-slate-300">{{ userSummary()!.displayName }}</p>
 					</article>
 					<article class="rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm dark:border-slate-700 dark:bg-slate-950/80">
@@ -49,7 +56,7 @@ import type { ChampionBetMarket, CurrentUserSummary, MatchBetSelection, MatchLis
 					<article class="rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm dark:border-slate-700 dark:bg-slate-950/80">
 						<p class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Champion pick</p>
 						<p class="mt-2 text-2xl font-black text-slate-950 dark:text-white">{{ championMarket()!.currentUserChampionTeamName ?? "Pending" }}</p>
-						<p class="mt-2 text-sm text-slate-600 dark:text-slate-300">Stake: {{ championMarket()!.stakeAmountCc }} CC</p>
+						<p class="mt-2 text-sm text-slate-600 dark:text-slate-300">Stake: {{ formatCopaCoin(championMarket()!.stakeAmountCc) }} CC</p>
 					</article>
 				</section>
 
@@ -70,7 +77,7 @@ import type { ChampionBetMarket, CurrentUserSummary, MatchBetSelection, MatchLis
 									</div>
 									<div class="flex flex-wrap gap-2 text-sm font-medium">
 										<span class="rounded-full bg-sky-50 px-3 py-1 text-sky-700 dark:bg-sky-950 dark:text-sky-200">Pick: {{ getSelectionLabel(match.currentUserBetSelection!, match) }}</span>
-										<span class="rounded-full bg-amber-50 px-3 py-1 text-amber-700 dark:bg-amber-950 dark:text-amber-200">Stake: {{ match.stakeAmountCc }} CC</span>
+										<span class="rounded-full bg-amber-50 px-3 py-1 text-amber-700 dark:bg-amber-950 dark:text-amber-200">Stake: {{ formatCopaCoin(match.stakeAmountCc) }} CC</span>
 										@if (match.officialResult) {
 											<span class="rounded-full bg-indigo-50 px-3 py-1 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-200">Result: {{ getSelectionLabel(match.officialResult, match) }}</span>
 										}
@@ -99,6 +106,7 @@ import type { ChampionBetMarket, CurrentUserSummary, MatchBetSelection, MatchLis
 })
 export class BetsPageComponent {
 	private readonly matchesService = inject(MatchesService);
+	protected readonly formatCopaCoin = formatCopaCoin;
 	readonly betSelections: ReadonlyArray<MatchBetSelection> = ["Home", "Draw", "Away"];
 
 	readonly userSummary = signal<CurrentUserSummary | null>(null);
@@ -110,6 +118,19 @@ export class BetsPageComponent {
 	readonly submittingMatchId = signal<number | null>(null);
 	readonly placedMatchBets = computed(() => this.matches().filter((match) => !!match.currentUserBetSelection));
 	readonly settledPickCount = computed(() => this.placedMatchBets().filter((match) => match.isSettled).length);
+	readonly pendingStakeAmountCc = computed(() => {
+		const pendingMatchStakeAmountCc = this.placedMatchBets()
+			.filter((match) => !match.isSettled)
+			.reduce((total, match) => total + match.stakeAmountCc, 0);
+		const championMarket = this.championMarket();
+		const pendingChampionStakeAmountCc = championMarket?.currentUserChampionTeamName && !championMarket.isSettled
+			? championMarket.stakeAmountCc
+			: 0;
+
+		return pendingMatchStakeAmountCc + pendingChampionStakeAmountCc;
+	});
+	readonly availableBalanceCc = computed(() => this.userSummary()?.currentBalanceCc ?? 0);
+	readonly realizedBalanceCc = computed(() => this.availableBalanceCc() + this.pendingStakeAmountCc());
 
 	constructor() {
 		forkJoin({

@@ -1,4 +1,5 @@
 import { Component, inject, signal } from "@angular/core";
+import { formatCopaCoin } from "../../shared/copa-coin-format";
 import { LeaderboardService } from "./leaderboard.service";
 import type { LeaderboardItem } from "./leaderboard.models";
 
@@ -11,7 +12,7 @@ import type { LeaderboardItem } from "./leaderboard.models";
           <div>
             <p class="text-sm font-bold uppercase tracking-[0.24em] text-sky-700 dark:text-sky-300">CopaCoin leaderboard</p>
             <h1 class="mt-2 text-4xl font-black tracking-tight text-slate-950 dark:text-white">Current standings</h1>
-            <p class="mt-3 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">Balances show settled CopaCoin only. Open bets stay visible as pending until the result is known.</p>
+            <p class="mt-3 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">Total shows settled CopaCoin. Pending is locked in open bets. Available is what can still be used.</p>
           </div>
           <img class="mx-auto h-36 w-36 object-contain drop-shadow-xl lg:mx-0" src="/assets/brand/leaderboard-mascot.webp" alt="CopaCoin leaderboard mascot" />
         </div>
@@ -43,13 +44,16 @@ import type { LeaderboardItem } from "./leaderboard.models";
               <span class="flex size-11 items-center justify-center rounded-2xl text-sm font-black" [class]="getRankBadgeClasses(item.rank)">#{{ item.rank }}</span>
               <div>
                 <h2 class="font-bold text-slate-950 dark:text-white">{{ item.displayName }}</h2>
-                <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Current balance</p>
+                <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Total settled</p>
               </div>
               <div class="text-right">
-                <p class="text-lg font-black text-slate-950 dark:text-white">{{ item.currentBalanceCc }} CC</p>
-                @if (item.pendingStakeAmountCc > 0) {
-                  <p class="mt-1 rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700 dark:bg-amber-950 dark:text-amber-200">{{ item.pendingStakeAmountCc }} CC pending</p>
-                }
+                <p class="text-lg font-black text-slate-950 dark:text-white">{{ formatCopaCoin(item.currentBalanceCc) }} CC</p>
+                <div class="mt-1 flex flex-col items-end gap-1 text-xs font-bold">
+                  @if (item.pendingStakeAmountCc > 0) {
+                    <p class="rounded-full bg-amber-50 px-3 py-1 text-amber-700 dark:bg-amber-950 dark:text-amber-200">{{ formatCopaCoin(item.pendingStakeAmountCc) }} CC pending</p>
+                  }
+                  <p class="rounded-full bg-slate-100 px-3 py-1 text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ formatCopaCoin(item.availableBalanceCc) }} CC available</p>
+                </div>
               </div>
             </article>
           }
@@ -60,6 +64,7 @@ import type { LeaderboardItem } from "./leaderboard.models";
 })
 export class LeaderboardPageComponent {
   private readonly leaderboardService = inject(LeaderboardService);
+  protected readonly formatCopaCoin = formatCopaCoin;
 
   readonly leaderboard = signal<ReadonlyArray<LeaderboardItem>>([]);
   readonly isLoading = signal(true);

@@ -73,26 +73,29 @@ public sealed class SettleChampionHandlerTests
     {
         var winnerOne = CreateUser(1, 950);
         var winnerTwo = CreateUser(2, 950);
-        var loser = CreateUser(3, 950);
+        var winnerThree = CreateUser(3, 950);
+        var loser = CreateUser(4, 950);
         var settlement = TournamentSettlement.CreateSingleton();
-        settlement.AddChampionJackpot(21);
+        settlement.AddChampionJackpot(20);
 
         var result = await SettleChampionHandler.Handle(
             new SettleChampionCommand("Argentina"),
             new StubChampionBetRepository(
                 CreateBet(winnerOne, "Argentina"),
                 CreateBet(winnerTwo, "Argentina"),
+                CreateBet(winnerThree, "Argentina"),
                 CreateBet(loser, "Japan")),
             new StubTournamentSettlementRepository(settlement),
-            new StubUserRepository(winnerOne, winnerTwo, loser),
+            new StubUserRepository(winnerOne, winnerTwo, winnerThree, loser),
             new NoopApplicationTransactionFactory(),
             CancellationToken.None);
 
         Assert.True(result.IsSuccess);
-        Assert.Equal(1035, winnerOne.CurrentBalanceCc);
-        Assert.Equal(1035, winnerTwo.CurrentBalanceCc);
-        Assert.Equal(1, settlement.UndistributedJackpotCc);
-        Assert.Equal(1, result.Value!.UndistributedJackpotCc);
+        Assert.Equal(1023.33m, winnerOne.CurrentBalanceCc);
+        Assert.Equal(1023.33m, winnerTwo.CurrentBalanceCc);
+        Assert.Equal(1023.33m, winnerThree.CurrentBalanceCc);
+        Assert.Equal(0.01m, settlement.UndistributedJackpotCc);
+        Assert.Equal(0.01m, result.Value!.UndistributedJackpotCc);
     }
 
     [Fact]
@@ -138,7 +141,7 @@ public sealed class SettleChampionHandlerTests
         Assert.Equal(1, userRepository.SaveCalls);
     }
 
-    private static User CreateUser(int id, int balanceCc)
+    private static User CreateUser(int id, decimal balanceCc)
     {
         var user = User.Create($"google-{id}", $"user{id}@example.com", $"User {id}");
         SetEntityId(user, id);
@@ -162,7 +165,7 @@ public sealed class SettleChampionHandlerTests
     private static void SetProperty(object target, string propertyName, object? value)
     {
         var property = target.GetType().GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-        property!.SetValue(target, value);
+        property!.SetValue(target, property.PropertyType == typeof(decimal) && value is not null ? Convert.ToDecimal(value) : value);
     }
 
     private sealed class StubChampionBetRepository(params ChampionBet[] championBets) : IChampionBetRepository
@@ -182,7 +185,7 @@ public sealed class SettleChampionHandlerTests
             return Task.FromResult<IReadOnlyList<ChampionBet>>(championBets);
         }
 
-        public Task<IReadOnlyDictionary<int, int>> ListStakeAmountsByUserAsync(CancellationToken cancellationToken = default)
+        public Task<IReadOnlyDictionary<int, decimal>> ListStakeAmountsByUserAsync(CancellationToken cancellationToken = default)
         {
             throw new NotSupportedException();
         }

@@ -4,6 +4,6 @@ public sealed record CurrentUserSummaryDto(
     int Id,
     string DisplayName,
     string Email,
-    int CurrentBalanceCc,
+    decimal CurrentBalanceCc,
     int RescueCount,
-    int RescueDebtCc);
+    decimal RescueDebtCc);

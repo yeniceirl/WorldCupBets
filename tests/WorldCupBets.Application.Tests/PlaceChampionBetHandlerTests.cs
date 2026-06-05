@@ -100,7 +100,7 @@ public sealed class PlaceChampionBetHandlerTests
     private static void SetProperty(object target, string propertyName, object? value)
     {
         var property = target.GetType().GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-        property!.SetValue(target, value);
+        property!.SetValue(target, property.PropertyType == typeof(decimal) && value is not null ? Convert.ToDecimal(value) : value);
     }
 
     private sealed class StubUserRepository(params User[] users) : IUserRepository
@@ -198,7 +198,7 @@ public sealed class PlaceChampionBetHandlerTests
             return Task.FromResult<IReadOnlyList<ChampionBet>>(championBets.ToArray());
         }
 
-        public Task<IReadOnlyDictionary<int, int>> ListStakeAmountsByUserAsync(CancellationToken cancellationToken = default)
+        public Task<IReadOnlyDictionary<int, decimal>> ListStakeAmountsByUserAsync(CancellationToken cancellationToken = default)
         {
             throw new NotSupportedException();
         }

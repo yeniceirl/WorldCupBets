@@ -32,6 +32,7 @@ public sealed class GetLeaderboardHandlerTests
                 Assert.Equal("Linus", item.DisplayName);
                 Assert.Equal(1500, item.CurrentBalanceCc);
                 Assert.Equal(0, item.PendingStakeAmountCc);
+                Assert.Equal(1500, item.AvailableBalanceCc);
             },
             item =>
             {
@@ -39,6 +40,7 @@ public sealed class GetLeaderboardHandlerTests
                 Assert.Equal("Ada", item.DisplayName);
                 Assert.Equal(1200, item.CurrentBalanceCc);
                 Assert.Equal(0, item.PendingStakeAmountCc);
+                Assert.Equal(1200, item.AvailableBalanceCc);
             },
             item =>
             {
@@ -46,6 +48,7 @@ public sealed class GetLeaderboardHandlerTests
                 Assert.Equal("Grace", item.DisplayName);
                 Assert.Equal(900, item.CurrentBalanceCc);
                 Assert.Equal(0, item.PendingStakeAmountCc);
+                Assert.Equal(900, item.AvailableBalanceCc);
             });
     }
 
@@ -90,6 +93,7 @@ public sealed class GetLeaderboardHandlerTests
                 Assert.Equal("Ada", item.DisplayName);
                 Assert.Equal(1000, item.CurrentBalanceCc);
                 Assert.Equal(55, item.PendingStakeAmountCc);
+                Assert.Equal(945, item.AvailableBalanceCc);
             },
             item =>
             {
@@ -97,6 +101,7 @@ public sealed class GetLeaderboardHandlerTests
                 Assert.Equal("Grace", item.DisplayName);
                 Assert.Equal(990, item.CurrentBalanceCc);
                 Assert.Equal(0, item.PendingStakeAmountCc);
+                Assert.Equal(990, item.AvailableBalanceCc);
             });
     }
 
@@ -138,6 +143,7 @@ public sealed class GetLeaderboardHandlerTests
                 Assert.Equal("Winner", item.DisplayName);
                 Assert.Equal(1005, item.CurrentBalanceCc);
                 Assert.Equal(0, item.PendingStakeAmountCc);
+                Assert.Equal(1005, item.AvailableBalanceCc);
             },
             item =>
             {
@@ -145,6 +151,7 @@ public sealed class GetLeaderboardHandlerTests
                 Assert.Equal("Loser", item.DisplayName);
                 Assert.Equal(995, item.CurrentBalanceCc);
                 Assert.Equal(0, item.PendingStakeAmountCc);
+                Assert.Equal(995, item.AvailableBalanceCc);
             });
     }
 
@@ -173,7 +180,7 @@ public sealed class GetLeaderboardHandlerTests
     private static void SetProperty(object target, string propertyName, object? value)
     {
         var property = target.GetType().GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-        property!.SetValue(target, value);
+        property!.SetValue(target, property.PropertyType == typeof(decimal) && value is not null ? Convert.ToDecimal(value) : value);
     }
 
     private sealed class StubUserRepository(params User[] users) : IUserRepository
@@ -274,14 +281,14 @@ public sealed class GetLeaderboardHandlerTests
             return Task.FromResult<IReadOnlyList<MatchBet>>(matchBets.Where(matchBet => matchBet.MatchId == matchId).ToArray());
         }
 
-        public Task<IReadOnlyDictionary<int, int>> ListPendingStakeAmountsByUserAsync(CancellationToken cancellationToken = default)
+        public Task<IReadOnlyDictionary<int, decimal>> ListPendingStakeAmountsByUserAsync(CancellationToken cancellationToken = default)
         {
             var stakesByUser = matchBets
                 .Where(matchBet => matchBet.Match.SettledAtUtc is null)
                 .GroupBy(matchBet => matchBet.UserId)
                 .ToDictionary(group => group.Key, group => group.Sum(matchBet => matchBet.StakeAmountCc));
 
-            return Task.FromResult<IReadOnlyDictionary<int, int>>(stakesByUser);
+            return Task.FromResult<IReadOnlyDictionary<int, decimal>>(stakesByUser);
         }
 
         public Task AddAsync(MatchBet matchBet, CancellationToken cancellationToken = default)
@@ -307,13 +314,13 @@ public sealed class GetLeaderboardHandlerTests
             return Task.FromResult<IReadOnlyList<ChampionBet>>(championBets);
         }
 
-        public Task<IReadOnlyDictionary<int, int>> ListStakeAmountsByUserAsync(CancellationToken cancellationToken = default)
+        public Task<IReadOnlyDictionary<int, decimal>> ListStakeAmountsByUserAsync(CancellationToken cancellationToken = default)
         {
             var stakesByUser = championBets
                 .GroupBy(championBet => championBet.UserId)
                 .ToDictionary(group => group.Key, group => group.Sum(championBet => championBet.StakeAmountCc));
 
-            return Task.FromResult<IReadOnlyDictionary<int, int>>(stakesByUser);
+            return Task.FromResult<IReadOnlyDictionary<int, decimal>>(stakesByUser);
         }
 
         public Task AddAsync(ChampionBet championBet, CancellationToken cancellationToken = default)

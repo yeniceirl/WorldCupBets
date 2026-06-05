@@ -50,6 +50,7 @@ export interface ChampionBetMarket {
 	stakeAmountCc: number;
 	bettingClosesAtUtc: string | null;
 	isBettingOpen: boolean;
+	isSettled: boolean;
 	currentUserChampionTeamName: string | null;
 }
 

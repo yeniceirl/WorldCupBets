@@ -3,4 +3,5 @@ export interface LeaderboardItem {
 	displayName: string;
 	currentBalanceCc: number;
 	pendingStakeAmountCc: number;
+	availableBalanceCc: number;
 }

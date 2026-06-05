@@ -2,6 +2,7 @@ import { DatePipe } from "@angular/common";
 import { Component, computed, inject, signal } from "@angular/core";
 import { forkJoin } from "rxjs";
 import { AuthStateService } from "../../core/auth/auth-state.service";
+import { formatCopaCoin } from "../../shared/copa-coin-format";
 import { AdminService } from "./admin.service";
 import { MatchesService } from "../matches/matches.service";
 import type { ChampionBetMarket, MatchBetSelection, MatchListItem } from "../matches/matches.models";
@@ -129,6 +130,7 @@ export class AdminPageComponent {
 	private readonly authState = inject(AuthStateService);
 	private readonly adminService = inject(AdminService);
 	private readonly matchesService = inject(MatchesService);
+	protected readonly formatCopaCoin = formatCopaCoin;
 
 	readonly matches = signal<ReadonlyArray<MatchListItem>>([]);
 	readonly championMarket = signal<ChampionBetMarket | null>(null);
@@ -189,7 +191,7 @@ export class AdminPageComponent {
 		this.submittingMatchId.set(match.id);
 		this.matchesService.recordMatchResult(match.id, { officialResult }).subscribe({
 			next: (result) => {
-				this.successMessage.set(`Recorded ${match.homeTeamName} vs ${match.awayTeamName}. Jackpot is now ${result.championJackpotCc} CC.`);
+				this.successMessage.set(`Recorded ${match.homeTeamName} vs ${match.awayTeamName}. Jackpot is now ${formatCopaCoin(result.championJackpotCc)} CC.`);
 				this.submittingMatchId.set(null);
 				this.loadData();
 			},
@@ -210,7 +212,7 @@ export class AdminPageComponent {
 		this.isSettlingChampion.set(true);
 		this.matchesService.settleChampion({ championTeamName: this.selectedChampionTeamName() }).subscribe({
 			next: (result) => {
-				this.successMessage.set(`Champion settled for ${result.championTeamName}. Winners: ${result.winnersCount}. Payout: ${result.totalPayoutPerWinnerCc} CC.`);
+				this.successMessage.set(`Champion settled for ${result.championTeamName}. Winners: ${result.winnersCount}. Payout: ${formatCopaCoin(result.totalPayoutPerWinnerCc)} CC.`);
 				this.isSettlingChampion.set(false);
 			},
 			error: (error: { error?: { error?: string; detail?: string } }) => {

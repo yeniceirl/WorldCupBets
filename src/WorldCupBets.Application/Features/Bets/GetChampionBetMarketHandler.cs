@@ -8,11 +8,13 @@ public sealed class GetChampionBetMarketHandler
         GetChampionBetMarketQuery query,
         IMatchRepository matchRepository,
         IChampionBetRepository championBetRepository,
+        ITournamentSettlementRepository tournamentSettlementRepository,
         CancellationToken cancellationToken)
     {
         var closesAtUtc = await matchRepository.GetChampionBettingClosesAtUtcAsync(cancellationToken);
         var currentUserBet = await championBetRepository.GetByUserAsync(query.UserId, cancellationToken);
         var teamOptions = await matchRepository.ListTeamNamesAsync(cancellationToken);
+        var isSettled = await tournamentSettlementRepository.IsChampionSettledAsync(cancellationToken);
         var nowUtc = DateTime.UtcNow;
 
         return new ChampionBetMarketDto(
@@ -20,6 +22,7 @@ public sealed class GetChampionBetMarketHandler
             PlaceChampionBetHandler.ChampionBetStakeAmountCc,
             closesAtUtc,
             closesAtUtc is null || nowUtc < closesAtUtc.Value,
+            isSettled,
             currentUserBet?.TeamName);
     }
 }

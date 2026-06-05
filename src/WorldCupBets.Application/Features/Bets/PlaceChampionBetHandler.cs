@@ -7,7 +7,7 @@ namespace WorldCupBets.Application.Features.Bets;
 
 public sealed class PlaceChampionBetHandler
 {
-    public const int ChampionBetStakeAmountCc = 50;
+    public const decimal ChampionBetStakeAmountCc = 50m;
 
     public static async Task<Result<PlaceChampionBetResultDto>> Handle(
         PlaceChampionBetCommand command,

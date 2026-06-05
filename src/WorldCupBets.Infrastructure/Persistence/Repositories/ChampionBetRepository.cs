@@ -23,7 +23,7 @@ public sealed class ChampionBetRepository(AppDbContext dbContext) : IChampionBet
             .ToArrayAsync(cancellationToken);
     }
 
-    public async Task<IReadOnlyDictionary<int, int>> ListStakeAmountsByUserAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyDictionary<int, decimal>> ListStakeAmountsByUserAsync(CancellationToken cancellationToken = default)
     {
         return await dbContext.ChampionBets
             .AsNoTracking()

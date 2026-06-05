@@ -22,6 +22,7 @@ public sealed class GetLeaderboardHandlerTests
                 CreateUser(3, "Linus", 1500)),
             new StubMatchBetRepository(),
             new StubChampionBetRepository(),
+            new StubSpecialPlayerBetRepository(),
             new StubTournamentSettlementRepository(TournamentSettlement.CreateSingleton()),
             CancellationToken.None);
 
@@ -62,6 +63,7 @@ public sealed class GetLeaderboardHandlerTests
                 CreateUser(2, "Grace", 1000)),
             new StubMatchBetRepository(),
             new StubChampionBetRepository(),
+            new StubSpecialPlayerBetRepository(),
             new StubTournamentSettlementRepository(TournamentSettlement.CreateSingleton()),
             CancellationToken.None);
 
@@ -83,6 +85,7 @@ public sealed class GetLeaderboardHandlerTests
             new StubUserRepository(ada, grace),
             new StubMatchBetRepository(CreateBet(ada, match, MatchBetSelection.Home)),
             new StubChampionBetRepository(ChampionBet.Create(ada.Id, "Argentina", 50, DateTime.UtcNow)),
+            new StubSpecialPlayerBetRepository(SpecialPlayerBet.Create(ada.Id, SpecialPlayerBetCategory.TopScorer, "Lionel Messi", "34146370", 50, DateTime.UtcNow)),
             new StubTournamentSettlementRepository(TournamentSettlement.CreateSingleton()),
             CancellationToken.None);
 
@@ -91,8 +94,8 @@ public sealed class GetLeaderboardHandlerTests
             {
                 Assert.Equal(1, item.Rank);
                 Assert.Equal("Ada", item.DisplayName);
-                Assert.Equal(1000, item.CurrentBalanceCc);
-                Assert.Equal(55, item.PendingStakeAmountCc);
+                Assert.Equal(1050, item.CurrentBalanceCc);
+                Assert.Equal(105, item.PendingStakeAmountCc);
                 Assert.Equal(945, item.AvailableBalanceCc);
             },
             item =>
@@ -132,6 +135,7 @@ public sealed class GetLeaderboardHandlerTests
                 CreateBet(winner, match, MatchBetSelection.Home),
                 CreateBet(loser, match, MatchBetSelection.Away)),
             new StubChampionBetRepository(),
+            new StubSpecialPlayerBetRepository(),
             new StubTournamentSettlementRepository(TournamentSettlement.CreateSingleton()),
             CancellationToken.None);
 
@@ -324,6 +328,33 @@ public sealed class GetLeaderboardHandlerTests
         }
 
         public Task AddAsync(ChampionBet championBet, CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+    }
+
+    private sealed class StubSpecialPlayerBetRepository(params SpecialPlayerBet[] specialPlayerBets) : ISpecialPlayerBetRepository
+    {
+        public Task<bool> ExistsForUserAndCategoryAsync(int userId, SpecialPlayerBetCategory category, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(specialPlayerBets.Any(specialPlayerBet => specialPlayerBet.UserId == userId && specialPlayerBet.Category == category));
+        }
+
+        public Task<IReadOnlyList<SpecialPlayerBet>> ListByUserAsync(int userId, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<SpecialPlayerBet>>(specialPlayerBets.Where(specialPlayerBet => specialPlayerBet.UserId == userId).ToArray());
+        }
+
+        public Task<IReadOnlyDictionary<int, decimal>> ListStakeAmountsByUserAsync(CancellationToken cancellationToken = default)
+        {
+            var stakesByUser = specialPlayerBets
+                .GroupBy(specialPlayerBet => specialPlayerBet.UserId)
+                .ToDictionary(group => group.Key, group => group.Sum(specialPlayerBet => specialPlayerBet.StakeAmountCc));
+
+            return Task.FromResult<IReadOnlyDictionary<int, decimal>>(stakesByUser);
+        }
+
+        public Task AddAsync(SpecialPlayerBet specialPlayerBet, CancellationToken cancellationToken = default)
         {
             throw new NotSupportedException();
         }

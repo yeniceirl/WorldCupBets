@@ -35,6 +35,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IMatchRepository, MatchRepository>();
         services.AddScoped<IMatchBetRepository, MatchBetRepository>();
         services.AddScoped<IChampionBetRepository, ChampionBetRepository>();
+        services.AddScoped<ISpecialPlayerBetRepository, SpecialPlayerBetRepository>();
         services.AddScoped<ITournamentSettlementRepository, TournamentSettlementRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IUserInvitationRepository, UserInvitationRepository>();
@@ -62,6 +63,10 @@ public static class InfrastructureServiceCollectionExtensions
 
             return new WorldCup26FootballDataProvider(httpClient, serviceProvider.GetRequiredService<ExternalFootballDataOptions>());
         });
+        services.AddSingleton<IPlayerSearchProvider>(_ => new TheSportsDbPlayerSearchProvider(new HttpClient
+        {
+            BaseAddress = new Uri("https://www.thesportsdb.com")
+        }));
 
         return services;
     }

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Wolverine;
+using WorldCupBets.Application.Abstractions;
 using WorldCupBets.Application.Features.FootballData;
 
 namespace WorldCupBets.WebApi.Endpoints;
@@ -20,6 +21,22 @@ public static class FootballDataEndpoints
         .WithName("GetFootballDataSnapshot")
         .WithSummary("Get the latest cached external football data snapshot.")
         .Produces<FootballDataSnapshotDto>(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status401Unauthorized)
+        .Produces(StatusCodes.Status403Forbidden);
+
+        group.MapGet("/players/search", async (string query, IMessageBus messageBus, CancellationToken cancellationToken) =>
+        {
+            if (query.Trim().Length < 3)
+            {
+                return Results.Ok(Array.Empty<PlayerSearchResultDto>());
+            }
+
+            var result = await messageBus.InvokeAsync<IReadOnlyList<PlayerSearchResultDto>>(new SearchPlayersQuery(query), cancellationToken);
+            return Results.Ok(result);
+        })
+        .WithName("SearchPlayers")
+        .WithSummary("Search soccer players from the external provider for tournament special bet autocomplete.")
+        .Produces<IReadOnlyList<PlayerSearchResultDto>>(StatusCodes.Status200OK)
         .Produces(StatusCodes.Status401Unauthorized)
         .Produces(StatusCodes.Status403Forbidden);
 

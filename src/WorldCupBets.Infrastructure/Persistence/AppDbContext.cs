@@ -27,6 +27,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 
     public DbSet<ChampionBet> ChampionBets => Set<ChampionBet>();
 
+    public DbSet<SpecialPlayerBet> SpecialPlayerBets => Set<SpecialPlayerBet>();
+
     public DbSet<Match> Matches => Set<Match>();
 
     public DbSet<MatchBet> MatchBets => Set<MatchBet>();

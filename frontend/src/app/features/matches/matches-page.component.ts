@@ -4,7 +4,6 @@ import { forkJoin } from "rxjs";
 import { formatCopaCoin } from "../../shared/copa-coin-format";
 import { MatchesService } from "./matches.service";
 import type {
-	ChampionBetMarket,
 	CurrentUserSummary,
 	FootballDataSnapshot,
 	FootballGroupStanding,
@@ -58,7 +57,7 @@ interface MatchDateGroup {
 			}
 
 			@if (showDashboard()) {
-				<section class="grid gap-4 lg:grid-cols-[1.1fr_1.4fr]">
+				<section class="grid gap-4">
 					<article class="rounded-2xl border border-slate-200 bg-white/90 p-6 shadow-sm dark:border-slate-700 dark:bg-slate-950/80" data-testid="wallet-card">
 						<p class="text-sm font-bold uppercase tracking-wide text-sky-700 dark:text-sky-300">Total settled</p>
 						<h2 class="mt-2 text-2xl font-black text-slate-950 dark:text-white">{{ formatCopaCoin(realizedBalanceCc()) }} CC</h2>
@@ -81,49 +80,6 @@ interface MatchDateGroup {
 						</div>
 					</article>
 
-					<article class="rounded-2xl border border-slate-200 bg-white/90 p-6 shadow-sm dark:border-slate-700 dark:bg-slate-950/80" data-testid="champion-market-card">
-						<p class="text-sm font-bold uppercase tracking-wide text-sky-700 dark:text-sky-300">Champion bet</p>
-						<h2 class="mt-2 text-2xl font-black text-slate-950 dark:text-white">{{ formatCopaCoin(championMarket()!.stakeAmountCc) }} CC</h2>
-						@if (championMarket()!.currentUserChampionTeamName) {
-							<p class="mt-3 inline-flex rounded-full bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700" data-testid="champion-current-pick">
-								Your champion pick: {{ championMarket()!.currentUserChampionTeamName }}
-							</p>
-						} @else if (championMarket()!.isBettingOpen) {
-							<p class="mt-3 text-sm text-slate-600 dark:text-slate-300">
-								Champion betting is open
-								@if (championMarket()!.bettingClosesAtUtc) {
-									<span> until {{ championMarket()!.bettingClosesAtUtc | date: "medium" : "UTC" }} UTC</span>
-								}.
-							</p>
-						} @else {
-							<p class="mt-3 text-sm text-slate-600 dark:text-slate-300">Champion betting is closed.</p>
-						}
-
-						@if (!championMarket()!.currentUserChampionTeamName) {
-							<div class="mt-4 flex flex-col gap-3 sm:flex-row">
-								<select
-									#championTeamSelect
-									class="min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
-									(change)="selectedChampionTeamName.set(championTeamSelect.value)"
-									[attr.data-testid]="'champion-team-select'"
-								>
-									<option value="">Select a team</option>
-									@for (teamName of championMarket()!.teamOptions; track teamName) {
-										<option [value]="teamName">{{ teamName }}</option>
-									}
-								</select>
-								<button
-									type="button"
-									class="rounded-xl border border-sky-600 bg-sky-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
-									(click)="placeChampionBet()"
-									[disabled]="!selectedChampionTeamName() || !championMarket()!.isBettingOpen || isSubmittingChampionBet()"
-									data-testid="place-champion-bet-button"
-								>
-									Place champion bet
-								</button>
-							</div>
-						}
-					</article>
 				</section>
 			}
 
@@ -278,17 +234,14 @@ export class MatchesPageComponent {
 	readonly matchFilters: ReadonlyArray<MatchDayFilter> = ["Today", "Tomorrow", "All"];
 
 	readonly userSummary = signal<CurrentUserSummary | null>(null);
-	readonly championMarket = signal<ChampionBetMarket | null>(null);
 	readonly footballData = signal<FootballDataSnapshot | null>(null);
 	readonly matches = signal<ReadonlyArray<MatchListItem>>([]);
 	readonly isLoading = signal(true);
 	readonly errorMessage = signal("");
 	readonly successMessage = signal("");
-	readonly selectedChampionTeamName = signal("");
 	readonly selectedMatchFilter = signal<MatchDayFilter>("Today");
-	readonly isSubmittingChampionBet = signal(false);
 	readonly submittingMatchId = signal<number | null>(null);
-	readonly showDashboard = computed(() => !this.isLoading() && !!this.userSummary() && !!this.championMarket());
+	readonly showDashboard = computed(() => !this.isLoading() && !!this.userSummary());
 	readonly filteredMatches = computed(() => this.filterMatches(this.selectedMatchFilter()));
 	readonly groupedFilteredMatches = computed(() => this.groupMatchesByDate(this.filteredMatches()));
 	readonly placedMatchBets = computed(() => this.matches().filter((match) => !!match.currentUserBetSelection));
@@ -296,12 +249,7 @@ export class MatchesPageComponent {
 		const pendingMatchStakeAmountCc = this.placedMatchBets()
 			.filter((match) => !match.isSettled)
 			.reduce((total, match) => total + match.stakeAmountCc, 0);
-		const championMarket = this.championMarket();
-		const pendingChampionStakeAmountCc = championMarket?.currentUserChampionTeamName && !championMarket.isSettled
-			? championMarket.stakeAmountCc
-			: 0;
-
-		return pendingMatchStakeAmountCc + pendingChampionStakeAmountCc;
+		return pendingMatchStakeAmountCc;
 	});
 	readonly availableBalanceCc = computed(() => this.userSummary()?.currentBalanceCc ?? 0);
 	readonly realizedBalanceCc = computed(() => this.availableBalanceCc() + this.pendingStakeAmountCc());
@@ -333,39 +281,6 @@ export class MatchesPageComponent {
 					error.error?.detail ??
 					"Unable to place the match bet right now.");
 				this.submittingMatchId.set(null);
-			},
-		});
-	}
-
-	placeChampionBet(): void {
-		if (!this.selectedChampionTeamName()) {
-			return;
-		}
-
-		this.errorMessage.set("");
-		this.successMessage.set("");
-		this.isSubmittingChampionBet.set(true);
-
-		this.matchesService.placeChampionBet({ teamName: this.selectedChampionTeamName() }).subscribe({
-			next: (result) => {
-				if (this.championMarket()) {
-					this.championMarket.set({
-						...this.championMarket()!,
-						currentUserChampionTeamName: result.teamName,
-					});
-				}
-
-				this.successMessage.set(`Champion bet placed for ${result.teamName}. Remaining balance: ${formatCopaCoin(result.remainingBalanceCc)} CC.`);
-				this.selectedChampionTeamName.set("");
-				this.refreshUserSummary();
-				this.isSubmittingChampionBet.set(false);
-			},
-			error: (error: { error?: { error?: string; detail?: string } }) => {
-				this.errorMessage.set(
-					error.error?.error ??
-					error.error?.detail ??
-					"Unable to place the champion bet right now.");
-				this.isSubmittingChampionBet.set(false);
 			},
 		});
 	}
@@ -450,13 +365,11 @@ export class MatchesPageComponent {
 	private loadPageData(): void {
 		forkJoin({
 			userSummary: this.matchesService.getCurrentUserSummary(),
-			championMarket: this.matchesService.getChampionBetMarket(),
 			matches: this.matchesService.listMatches(),
 			footballData: this.matchesService.getFootballDataSnapshot(),
 		}).subscribe({
-			next: ({ userSummary, championMarket, matches, footballData }) => {
+			next: ({ userSummary, matches, footballData }) => {
 				this.userSummary.set(userSummary);
-				this.championMarket.set(championMarket);
 				this.matches.set(matches);
 				this.footballData.set(footballData);
 				this.isLoading.set(false);

@@ -9,6 +9,7 @@ public sealed class GetLeaderboardHandler
         IUserRepository userRepository,
         IMatchBetRepository matchBetRepository,
         IChampionBetRepository championBetRepository,
+        ISpecialPlayerBetRepository specialPlayerBetRepository,
         ITournamentSettlementRepository tournamentSettlementRepository,
         CancellationToken cancellationToken)
     {
@@ -18,12 +19,14 @@ public sealed class GetLeaderboardHandler
         var pendingChampionStakesByUser = championSettled
             ? new Dictionary<int, decimal>()
             : await championBetRepository.ListStakeAmountsByUserAsync(cancellationToken);
+        var pendingSpecialPlayerStakesByUser = await specialPlayerBetRepository.ListStakeAmountsByUserAsync(cancellationToken);
 
         return users
             .Select(user =>
             {
                 var pendingStakeAmountCc = pendingMatchStakesByUser.GetValueOrDefault(user.Id)
-                    + pendingChampionStakesByUser.GetValueOrDefault(user.Id);
+                    + pendingChampionStakesByUser.GetValueOrDefault(user.Id)
+                    + pendingSpecialPlayerStakesByUser.GetValueOrDefault(user.Id);
 
                 return new
                 {

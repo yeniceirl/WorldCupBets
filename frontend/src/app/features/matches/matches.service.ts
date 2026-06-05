@@ -8,12 +8,16 @@ import type {
 	FootballDataSnapshot,
 	PlaceChampionBetRequest,
 	PlaceChampionBetResult,
+	PlaceSpecialPlayerBetRequest,
+	PlaceSpecialPlayerBetResult,
 	PlaceMatchBetRequest,
 	PlaceMatchBetResult,
+	PlayerSearchResult,
 	RecordMatchResult,
 	RecordMatchResultRequest,
 	SettleChampionRequest,
 	SettleChampionResult,
+	SpecialBetMarket,
 	SyncFootballDataResult,
 	ImportGroupStageFixturesResult,
 } from "./matches.models";
@@ -34,6 +38,16 @@ export class MatchesService {
 		return this.httpClient.get<ChampionBetMarket>("/api/bets/champion");
 	}
 
+	getSpecialBetMarket(): Observable<SpecialBetMarket> {
+		return this.httpClient.get<SpecialBetMarket>("/api/bets/special");
+	}
+
+	searchPlayers(query: string): Observable<ReadonlyArray<PlayerSearchResult>> {
+		return this.httpClient.get<ReadonlyArray<PlayerSearchResult>>("/api/football-data/players/search", {
+			params: { query },
+		});
+	}
+
 	getFootballDataSnapshot(): Observable<FootballDataSnapshot> {
 		return this.httpClient.get<FootballDataSnapshot>("/api/football-data/snapshot");
 	}
@@ -44,6 +58,10 @@ export class MatchesService {
 
 	placeChampionBet(request: PlaceChampionBetRequest): Observable<PlaceChampionBetResult> {
 		return this.httpClient.post<PlaceChampionBetResult>("/api/bets/champion", request);
+	}
+
+	placeSpecialPlayerBet(request: PlaceSpecialPlayerBetRequest): Observable<PlaceSpecialPlayerBetResult> {
+		return this.httpClient.post<PlaceSpecialPlayerBetResult>("/api/bets/special/player", request);
 	}
 
 	recordMatchResult(matchId: number, request: RecordMatchResultRequest): Observable<RecordMatchResult> {

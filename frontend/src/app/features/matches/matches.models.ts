@@ -65,6 +65,47 @@ export interface PlaceChampionBetResult {
 	placedAtUtc: string;
 }
 
+export type SpecialPlayerBetCategory = "BestPlayer" | "TopScorer";
+
+export interface SpecialBetMarket {
+	stakeAmountCc: number;
+	bettingClosesAtUtc: string | null;
+	isBettingOpen: boolean;
+	playerBets: ReadonlyArray<SpecialPlayerBet>;
+}
+
+export interface SpecialPlayerBet {
+	category: SpecialPlayerBetCategory;
+	playerName: string;
+	externalPlayerId: string | null;
+	stakeAmountCc: number;
+	placedAtUtc: string;
+}
+
+export interface PlaceSpecialPlayerBetRequest {
+	category: SpecialPlayerBetCategory;
+	playerName: string;
+	externalPlayerId: string | null;
+}
+
+export interface PlaceSpecialPlayerBetResult {
+	category: SpecialPlayerBetCategory;
+	playerName: string;
+	externalPlayerId: string | null;
+	stakeAmountCc: number;
+	remainingBalanceCc: number;
+	placedAtUtc: string;
+}
+
+export interface PlayerSearchResult {
+	externalId: string;
+	name: string;
+	teamName: string | null;
+	nationality: string | null;
+	position: string | null;
+	thumbnailUrl: string | null;
+}
+
 export interface SettleChampionRequest {
 	championTeamName: string;
 }

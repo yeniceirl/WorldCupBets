@@ -106,7 +106,7 @@ interface PlayerBetDefinition {
 												<option [value]="player.name">{{ player.teamName ?? player.nationality ?? "Soccer" }}</option>
 											}
 										</datalist>
-										<button type="button" class="rounded-xl border border-sky-600 bg-sky-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60" (click)="placeSpecialPlayerBet(definition.category)" [disabled]="getSelectedPlayerName(definition.category).trim().length < 3 || !specialMarket()!.isBettingOpen || submittingSpecialCategory() === definition.category">
+						<button type="button" class="rounded-xl border border-sky-600 bg-sky-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60" (click)="placeSpecialPlayerBet(definition.category)" [disabled]="getSelectedPlayerName(definition.category).trim().length < 3 || !specialMarket()!.isBettingOpen || submittingSpecialCategory() === definition.category" [attr.data-testid]="'place-special-player-bet-' + definition.category">
 											Place {{ definition.label.toLowerCase() }} bet
 										</button>
 									</div>
@@ -194,7 +194,7 @@ export class BetsPageComponent {
 
 	readonly placedMatchBets = computed(() => this.matches().filter((match) => !!match.currentUserBetSelection));
 	readonly settledPickCount = computed(() => this.placedMatchBets().filter((match) => match.isSettled).length);
-	readonly tournamentPickCount = computed(() => (this.championMarket()?.currentUserChampionTeamName ? 1 : 0) + this.specialMarket()!.playerBets.length);
+	readonly tournamentPickCount = computed(() => (this.championMarket()?.currentUserChampionTeamName ? 1 : 0) + (this.specialMarket()?.playerBets.length ?? 0));
 	readonly tournamentStakeAmountCc = computed(() => {
 		const championStake = this.championMarket()?.currentUserChampionTeamName && !this.championMarket()?.isSettled
 			? this.championMarket()!.stakeAmountCc

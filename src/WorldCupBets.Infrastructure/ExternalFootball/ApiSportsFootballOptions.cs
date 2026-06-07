@@ -11,9 +11,7 @@ public sealed class ApiSportsFootballOptions
         "Spain",
         "Portugal",
         "Germany",
-        "Netherlands",
-        "Norway",
-        "Uruguay",
+        "Netherlands"
     ];
 
     public string ApiKey { get; init; } = string.Empty;

@@ -89,11 +89,7 @@ public static class InfrastructureServiceCollectionExtensions
             }
 
             return new ApiSportsFootballPlayerSearchProvider(
-                new HttpClient { BaseAddress = new Uri(apiSportsOptions.BaseUrl) },
-                apiSportsOptions,
-                serviceProvider.GetRequiredService<ExternalFootballDataOptions>(),
-                serviceProvider.GetRequiredService<IExternalFootballDataRepository>(),
-                serviceProvider.GetRequiredService<HybridCache>());
+                serviceProvider.GetRequiredService<IExternalFootballPlayerRepository>());
         });
         services.AddScoped<IPlayerSquadProvider>(_ => new ApiSportsPlayerSquadProvider(
             new HttpClient { BaseAddress = new Uri(apiSportsOptions.BaseUrl) },

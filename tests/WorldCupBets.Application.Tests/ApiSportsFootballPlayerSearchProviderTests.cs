@@ -1,6 +1,3 @@
-using System.Net;
-using Microsoft.Extensions.Caching.Hybrid;
-using Microsoft.Extensions.DependencyInjection;
 using WorldCupBets.Application.Abstractions;
 using WorldCupBets.Infrastructure.ExternalFootball;
 using Xunit;
@@ -10,113 +7,105 @@ namespace WorldCupBets.Application.Tests;
 public sealed class ApiSportsFootballPlayerSearchProviderTests
 {
     [Fact]
-    public async Task SearchAsync_Builds_Squad_Index_And_Filters_Three_Character_Query()
+    public async Task SearchAsync_Returns_Persisted_Matches_Ranked_By_Starts_With_Word_Then_Alphabetical()
     {
-        var handler = new StubHttpMessageHandler(request =>
-        {
-            var pathAndQuery = request.RequestUri!.PathAndQuery;
-            if (pathAndQuery.Equals("/teams?search=Argentina", StringComparison.OrdinalIgnoreCase))
-            {
-                return """
-                    {
-                        "response": [
-                            { "team": { "id": 26, "name": "Argentina", "national": true } }
-                        ]
-                    }
-                    """;
-            }
-
-            if (pathAndQuery.Equals("/players/squads?team=26", StringComparison.OrdinalIgnoreCase))
-            {
-                return """
-                    {
-                        "response": [
-                            {
-                                "team": { "id": 26, "name": "Argentina" },
-                                "players": [
-                                    { "id": 154, "name": "L. Messi", "position": "Attacker", "photo": "https://example.test/messi.png" },
-                                    { "id": 217, "name": "Lautaro Martinez", "position": "Attacker", "photo": "https://example.test/lautaro.png" }
-                                ]
-                            }
-                        ]
-                    }
-                    """;
-            }
-
-            return "{ \"response\": [] }";
-        });
-        var provider = new ApiSportsFootballPlayerSearchProvider(
-            new HttpClient(handler) { BaseAddress = new Uri("https://example.test") },
-            new ApiSportsFootballOptions { ApiKey = "test-key" },
-            new ExternalFootballDataOptions { Provider = "worldcup26", BaseUrl = "https://worldcup26.ir" },
-            new StubExternalFootballDataRepository(new ExternalFootballSnapshot(
-                [new ExternalFootballTeamDto("37", "Argentina", "ARG", "AR", "J", null)],
-                [],
-                [],
-                [],
-                DateTime.UtcNow)),
-            CreateHybridCache());
+        var repository = new StubExternalFootballPlayerRepository(
+        [
+            new ExternalFootballPlayerDto("api-sports:217", "Lautaro Martinez", "lautaro martinez", "26", "Argentina", "Attacker", "https://example.test/lautaro.png"),
+            new ExternalFootballPlayerDto("api-sports:154", "L. Messi", "l. messi", "26", "Argentina", "Attacker", "https://example.test/messi.png"),
+            new ExternalFootballPlayerDto("api-sports:300", "Marco Messias", "marco messias", "47", "Brazil", "Defender", null),
+        ]);
+        var provider = new ApiSportsFootballPlayerSearchProvider(repository);
 
         var results = await provider.SearchAsync("mes", CancellationToken.None);
 
-        Assert.Single(results);
+        Assert.Equal(2, results.Count);
         Assert.Equal("api-sports:154", results[0].ExternalId);
         Assert.Equal("L. Messi", results[0].Name);
         Assert.Equal("Argentina", results[0].TeamName);
-        Assert.Equal(2, handler.Requests.Count);
+        Assert.Equal("api-sports:300", results[1].ExternalId);
+        Assert.Equal("Marco Messias", results[1].Name);
+        Assert.Equal("api-sports", repository.LastProviderName);
+        Assert.Equal("mes", repository.LastNormalizedQuery);
     }
 
     [Fact]
-    public async Task SearchAsync_Returns_Empty_When_Query_Is_Too_Short()
+    public async Task SearchAsync_Returns_Empty_When_Query_Is_Too_Short_And_Does_Not_Query_Repository()
     {
-        var handler = new StubHttpMessageHandler(_ => "{ \"response\": [] }");
-        var provider = new ApiSportsFootballPlayerSearchProvider(
-            new HttpClient(handler) { BaseAddress = new Uri("https://example.test") },
-            new ApiSportsFootballOptions { ApiKey = "test-key" },
-            new ExternalFootballDataOptions { Provider = "worldcup26", BaseUrl = "https://worldcup26.ir" },
-            new StubExternalFootballDataRepository(null),
-            CreateHybridCache());
+        var repository = new StubExternalFootballPlayerRepository(
+        [
+            new ExternalFootballPlayerDto("api-sports:154", "L. Messi", "l. messi", "26", "Argentina", "Attacker", null),
+        ]);
+        var provider = new ApiSportsFootballPlayerSearchProvider(repository);
 
         var results = await provider.SearchAsync("me", CancellationToken.None);
 
         Assert.Empty(results);
-        Assert.Empty(handler.Requests);
+        Assert.False(repository.WasQueried);
     }
 
-    private static HybridCache CreateHybridCache()
+    [Fact]
+    public async Task SearchAsync_Returns_Empty_When_No_Players_Persisted()
     {
-        var services = new ServiceCollection();
-        services.AddHybridCache();
+        var repository = new StubExternalFootballPlayerRepository([]);
+        var provider = new ApiSportsFootballPlayerSearchProvider(repository);
 
-        return services
-            .BuildServiceProvider()
-            .GetRequiredService<HybridCache>();
+        var results = await provider.SearchAsync("messi", CancellationToken.None);
+
+        Assert.Empty(results);
+        Assert.True(repository.WasQueried);
     }
 
-    private sealed class StubExternalFootballDataRepository(ExternalFootballSnapshot? snapshot) : IExternalFootballDataRepository
+    [Fact]
+    public async Task SearchAsync_Limits_Results_To_Ten()
     {
-        public Task ReplaceSnapshotAsync(string providerName, ExternalFootballSnapshot snapshot, CancellationToken cancellationToken = default)
+        var players = Enumerable.Range(1, 15)
+            .Select(index => new ExternalFootballPlayerDto(
+                $"api-sports:{index}",
+                $"Player Messi {index:00}",
+                $"player messi {index:00}",
+                "26",
+                "Argentina",
+                "Attacker",
+                null))
+            .ToArray();
+        var repository = new StubExternalFootballPlayerRepository(players);
+        var provider = new ApiSportsFootballPlayerSearchProvider(repository);
+
+        var results = await provider.SearchAsync("messi", CancellationToken.None);
+
+        Assert.Equal(10, results.Count);
+    }
+
+    private sealed class StubExternalFootballPlayerRepository(IReadOnlyList<ExternalFootballPlayerDto> players) : IExternalFootballPlayerRepository
+    {
+        public bool WasQueried { get; private set; }
+
+        public string? LastProviderName { get; private set; }
+
+        public string? LastNormalizedQuery { get; private set; }
+
+        public Task ReplacePlayersAsync(string providerName, IReadOnlyList<ExternalFootballPlayerDto> players, DateTime syncedAtUtc, CancellationToken cancellationToken = default)
         {
             throw new NotSupportedException();
         }
 
-        public Task<ExternalFootballSnapshot?> GetSnapshotAsync(string providerName, CancellationToken cancellationToken = default)
+        public Task<IReadOnlyList<ExternalFootballPlayerDto>> SearchAsync(string providerName, string normalizedQuery, CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(snapshot);
+            WasQueried = true;
+            LastProviderName = providerName;
+            LastNormalizedQuery = normalizedQuery;
+
+            var matches = players
+                .Where(player => player.NormalizedName.Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+
+            return Task.FromResult<IReadOnlyList<ExternalFootballPlayerDto>>(matches);
         }
-    }
 
-    private sealed class StubHttpMessageHandler(Func<HttpRequestMessage, string> responseFactory) : HttpMessageHandler
-    {
-        public List<Uri> Requests { get; } = [];
-
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        public Task<IReadOnlyDictionary<string, string>> GetTeamIdMapAsync(string providerName, CancellationToken cancellationToken = default)
         {
-            Requests.Add(request.RequestUri!);
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = new StringContent(responseFactory(request)),
-            });
+            throw new NotSupportedException();
         }
     }
 }

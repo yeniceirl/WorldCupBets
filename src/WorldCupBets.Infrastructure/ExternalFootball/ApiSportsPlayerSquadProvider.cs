@@ -11,6 +11,13 @@ public sealed class ApiSportsPlayerSquadProvider(HttpClient httpClient, ApiSport
 {
     public const string Provider = "api-sports";
 
+    // API-Sports' free plan throttles to roughly 10 requests/minute. Pacing requests at this
+    // interval keeps a sync run under that ceiling so it completes in one pass instead of
+    // tripping the per-minute limit (and the abort-on-429 safeguard) partway through.
+    private static readonly TimeSpan MinRequestInterval = TimeSpan.FromSeconds(7);
+
+    private DateTime? lastRequestAtUtc;
+
     public string ProviderName => Provider;
 
     public async Task<string?> ResolveTeamIdAsync(string teamName, CancellationToken cancellationToken = default)
@@ -50,6 +57,8 @@ public sealed class ApiSportsPlayerSquadProvider(HttpClient httpClient, ApiSport
 
     private async Task<T?> SendAsync<T>(string path, CancellationToken cancellationToken)
     {
+        await PaceRequestAsync(cancellationToken);
+
         using var request = new HttpRequestMessage(HttpMethod.Get, path);
         request.Headers.Add("x-apisports-key", options.ApiKey);
 
@@ -61,6 +70,20 @@ public sealed class ApiSportsPlayerSquadProvider(HttpClient httpClient, ApiSport
 
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<T>(cancellationToken);
+    }
+
+    private async Task PaceRequestAsync(CancellationToken cancellationToken)
+    {
+        if (lastRequestAtUtc is { } lastRequestAt)
+        {
+            var elapsed = DateTime.UtcNow - lastRequestAt;
+            if (elapsed < MinRequestInterval)
+            {
+                await Task.Delay(MinRequestInterval - elapsed, cancellationToken);
+            }
+        }
+
+        lastRequestAtUtc = DateTime.UtcNow;
     }
 
     private static string Normalize(string value)

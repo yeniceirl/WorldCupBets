@@ -208,7 +208,8 @@ public static class BetsEndpoints
                 return Results.Unauthorized();
             }
 
-            if (!Enum.TryParse<SpecialPlayerBetCategory>(request.Category, true, out var category))
+            if (!Enum.TryParse<TournamentPickCategory>(request.Category, true, out var category)
+                || category is TournamentPickCategory.Champion)
             {
                 return Results.ValidationProblem(new Dictionary<string, string[]>
                 {

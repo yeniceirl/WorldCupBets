@@ -20,7 +20,7 @@ public sealed class SettleChampionHandlerTests
 
         var result = await SettleChampionHandler.Handle(
             new SettleChampionCommand("Argentina"),
-            new StubChampionBetRepository(
+            new StubTournamentPickRepository(
                 CreateBet(winner, "Argentina"),
                 CreateBet(loser, "Japan")),
             new StubTournamentSettlementRepository(settlement),
@@ -49,7 +49,7 @@ public sealed class SettleChampionHandlerTests
 
         var result = await SettleChampionHandler.Handle(
             new SettleChampionCommand("Argentina"),
-            new StubChampionBetRepository(
+            new StubTournamentPickRepository(
                 CreateBet(winnerOne, "Argentina"),
                 CreateBet(winnerTwo, "Argentina"),
                 CreateBet(loserOne, "Japan"),
@@ -80,7 +80,7 @@ public sealed class SettleChampionHandlerTests
 
         var result = await SettleChampionHandler.Handle(
             new SettleChampionCommand("Argentina"),
-            new StubChampionBetRepository(
+            new StubTournamentPickRepository(
                 CreateBet(winnerOne, "Argentina"),
                 CreateBet(winnerTwo, "Argentina"),
                 CreateBet(winnerThree, "Argentina"),
@@ -106,7 +106,7 @@ public sealed class SettleChampionHandlerTests
         var settlement = TournamentSettlement.CreateSingleton();
         settlement.AddChampionJackpot(20);
         var userRepository = new StubUserRepository(winner, loser);
-        var championBetRepository = new StubChampionBetRepository(
+        var championBetRepository = new StubTournamentPickRepository(
             CreateBet(winner, "Argentina"),
             CreateBet(loser, "Japan"));
 
@@ -141,6 +141,34 @@ public sealed class SettleChampionHandlerTests
         Assert.Equal(1, userRepository.SaveCalls);
     }
 
+    [Fact]
+    public async Task Handle_Settles_Only_Champion_Tournament_Picks()
+    {
+        var championWinner = CreateUser(1, 950);
+        var championLoser = CreateUser(2, 950);
+        var playerPickUser = CreateUser(3, 950);
+        var settlement = TournamentSettlement.CreateSingleton();
+
+        var result = await SettleChampionHandler.Handle(
+            new SettleChampionCommand("Argentina"),
+            new StubTournamentPickRepository(
+                CreateChampionPick(championWinner, "Argentina"),
+                CreateChampionPick(championLoser, "Japan"),
+                CreatePlayerPick(playerPickUser, TournamentPickCategory.BestPlayer, "Lionel Messi"),
+                CreatePlayerPick(playerPickUser, TournamentPickCategory.TopScorer, "Kylian Mbappe")),
+            new StubTournamentSettlementRepository(settlement),
+            new StubUserRepository(championWinner, championLoser, playerPickUser),
+            new NoopApplicationTransactionFactory(),
+            CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1050, championWinner.CurrentBalanceCc);
+        Assert.Equal(950, championLoser.CurrentBalanceCc);
+        Assert.Equal(950, playerPickUser.CurrentBalanceCc);
+        Assert.Equal(1, result.Value!.WinnersCount);
+        Assert.Equal(1, result.Value.LosersCount);
+    }
+
     private static User CreateUser(int id, decimal balanceCc)
     {
         var user = User.Create($"google-{id}", $"user{id}@example.com", $"User {id}");
@@ -149,10 +177,22 @@ public sealed class SettleChampionHandlerTests
         return user;
     }
 
-    private static ChampionBet CreateBet(User user, string teamName)
+    private static TournamentPick CreateBet(User user, string teamName)
     {
-        var bet = ChampionBet.Create(user.Id, teamName, PlaceChampionBetHandler.ChampionBetStakeAmountCc, DateTime.UtcNow.AddDays(-1));
-        SetProperty(bet, nameof(ChampionBet.User), user);
+        return CreateChampionPick(user, teamName);
+    }
+
+    private static TournamentPick CreateChampionPick(User user, string teamName)
+    {
+        var bet = TournamentPick.CreateChampion(user.Id, teamName, PlaceChampionBetHandler.ChampionBetStakeAmountCc, DateTime.UtcNow.AddDays(-1));
+        SetProperty(bet, nameof(TournamentPick.User), user);
+        return bet;
+    }
+
+    private static TournamentPick CreatePlayerPick(User user, TournamentPickCategory category, string playerName)
+    {
+        var bet = TournamentPick.CreatePlayer(user.Id, category, playerName, null, PlaceSpecialPlayerBetHandler.SpecialPlayerBetStakeAmountCc, DateTime.UtcNow.AddDays(-1));
+        SetProperty(bet, nameof(TournamentPick.User), user);
         return bet;
     }
 
@@ -168,29 +208,34 @@ public sealed class SettleChampionHandlerTests
         property!.SetValue(target, property.PropertyType == typeof(decimal) && value is not null ? Convert.ToDecimal(value) : value);
     }
 
-    private sealed class StubChampionBetRepository(params ChampionBet[] championBets) : IChampionBetRepository
+    private sealed class StubTournamentPickRepository(params TournamentPick[] tournamentPicks) : ITournamentPickRepository
     {
-        public Task<bool> ExistsForUserAsync(int userId, CancellationToken cancellationToken = default)
+        public Task<bool> ExistsForUserAndCategoryAsync(int userId, TournamentPickCategory category, CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(championBets.Any(championBet => championBet.UserId == userId));
+            return Task.FromResult(tournamentPicks.Any(tournamentPick => tournamentPick.UserId == userId && tournamentPick.Category == category));
         }
 
-        public Task<ChampionBet?> GetByUserAsync(int userId, CancellationToken cancellationToken = default)
+        public Task<TournamentPick?> GetByUserAndCategoryAsync(int userId, TournamentPickCategory category, CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(championBets.SingleOrDefault(championBet => championBet.UserId == userId));
+            return Task.FromResult(tournamentPicks.SingleOrDefault(tournamentPick => tournamentPick.UserId == userId && tournamentPick.Category == category));
         }
 
-        public Task<IReadOnlyList<ChampionBet>> ListForSettlementAsync(CancellationToken cancellationToken = default)
+        public Task<IReadOnlyList<TournamentPick>> ListByUserAndCategoriesAsync(int userId, IReadOnlyCollection<TournamentPickCategory> categories, CancellationToken cancellationToken = default)
         {
-            return Task.FromResult<IReadOnlyList<ChampionBet>>(championBets);
+            return Task.FromResult<IReadOnlyList<TournamentPick>>(tournamentPicks.Where(tournamentPick => tournamentPick.UserId == userId && categories.Contains(tournamentPick.Category)).ToArray());
         }
 
-        public Task<IReadOnlyDictionary<int, decimal>> ListStakeAmountsByUserAsync(CancellationToken cancellationToken = default)
+        public Task<IReadOnlyList<TournamentPick>> ListChampionForSettlementAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<TournamentPick>>(tournamentPicks.Where(tournamentPick => tournamentPick.Category == TournamentPickCategory.Champion).ToArray());
+        }
+
+        public Task<IReadOnlyDictionary<int, decimal>> ListStakeAmountsByUserAsync(IReadOnlyCollection<TournamentPickCategory> categories, CancellationToken cancellationToken = default)
         {
             throw new NotSupportedException();
         }
 
-        public Task AddAsync(ChampionBet championBet, CancellationToken cancellationToken = default)
+        public Task AddAsync(TournamentPick pick, CancellationToken cancellationToken = default)
         {
             throw new NotSupportedException();
         }

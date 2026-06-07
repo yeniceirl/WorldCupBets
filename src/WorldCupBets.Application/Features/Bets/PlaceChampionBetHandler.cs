@@ -13,7 +13,7 @@ public sealed class PlaceChampionBetHandler
         PlaceChampionBetCommand command,
         IUserRepository userRepository,
         IMatchRepository matchRepository,
-        IChampionBetRepository championBetRepository,
+        ITournamentPickRepository tournamentPickRepository,
         IApplicationTransactionFactory transactionFactory,
         CancellationToken cancellationToken)
     {
@@ -31,7 +31,7 @@ public sealed class PlaceChampionBetHandler
             return Result<PlaceChampionBetResultDto>.Failure(new Error("bets.invalid_champion_team", "The selected champion team is not available."));
         }
 
-        if (await championBetRepository.ExistsForUserAsync(command.UserId, cancellationToken))
+        if (await tournamentPickRepository.ExistsForUserAndCategoryAsync(command.UserId, TournamentPickCategory.Champion, cancellationToken))
         {
             return Result<PlaceChampionBetResultDto>.Failure(new Error("bets.champion_bet_already_exists", "You already placed a champion bet."));
         }
@@ -52,8 +52,8 @@ public sealed class PlaceChampionBetHandler
         user.ApplyDeadRescueIfEligible();
 
         var normalizedTeamName = teamOptions.Single(teamName => string.Equals(teamName, command.TeamName, StringComparison.OrdinalIgnoreCase));
-        var championBet = ChampionBet.Create(command.UserId, normalizedTeamName, ChampionBetStakeAmountCc, nowUtc);
-        await championBetRepository.AddAsync(championBet, cancellationToken);
+        var championBet = TournamentPick.CreateChampion(command.UserId, normalizedTeamName, ChampionBetStakeAmountCc, nowUtc);
+        await tournamentPickRepository.AddAsync(championBet, cancellationToken);
         await userRepository.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 

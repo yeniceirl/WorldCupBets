@@ -80,9 +80,9 @@ public sealed class PostgresConcurrencyHardeningTests(ITestOutputHelper output)
             dbContext.TournamentSettlements.Add(settlement);
             await dbContext.SaveChangesAsync();
 
-            dbContext.ChampionBets.AddRange(
-                ChampionBet.Create(winner.Id, "Argentina", PlaceChampionBetHandler.ChampionBetStakeAmountCc, DateTime.UtcNow.AddDays(-1)),
-                ChampionBet.Create(loser.Id, "Japan", PlaceChampionBetHandler.ChampionBetStakeAmountCc, DateTime.UtcNow.AddDays(-1)));
+            dbContext.TournamentPicks.AddRange(
+                TournamentPick.CreateChampion(winner.Id, "Argentina", PlaceChampionBetHandler.ChampionBetStakeAmountCc, DateTime.UtcNow.AddDays(-1)),
+                TournamentPick.CreateChampion(loser.Id, "Japan", PlaceChampionBetHandler.ChampionBetStakeAmountCc, DateTime.UtcNow.AddDays(-1)));
             await dbContext.SaveChangesAsync();
         }
 
@@ -163,7 +163,7 @@ public sealed class PostgresConcurrencyHardeningTests(ITestOutputHelper output)
             await using var dbContext = CreateDbContext(options);
             var result = await SettleChampionHandler.Handle(
                 new SettleChampionCommand(championTeamName),
-                new ChampionBetRepository(dbContext),
+                new TournamentPickRepository(dbContext),
                 new TournamentSettlementRepository(dbContext),
                 new UserRepository(dbContext),
                 new EfApplicationTransactionFactory(dbContext),

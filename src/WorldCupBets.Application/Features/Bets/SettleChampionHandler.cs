@@ -11,7 +11,7 @@ public sealed class SettleChampionHandler
 
     public static async Task<Result<SettleChampionResultDto>> Handle(
         SettleChampionCommand command,
-        IChampionBetRepository championBetRepository,
+        ITournamentPickRepository tournamentPickRepository,
         ITournamentSettlementRepository tournamentSettlementRepository,
         IUserRepository userRepository,
         IApplicationTransactionFactory transactionFactory,
@@ -47,12 +47,12 @@ public sealed class SettleChampionHandler
                 settlement.ChampionSettledAtUtc.Value));
         }
 
-        var bets = await championBetRepository.ListForSettlementAsync(cancellationToken);
+        var bets = await tournamentPickRepository.ListChampionForSettlementAsync(cancellationToken);
         var winners = bets
-            .Where(bet => string.Equals(bet.TeamName, championTeamName, StringComparison.OrdinalIgnoreCase))
+            .Where(bet => string.Equals(bet.SelectedText, championTeamName, StringComparison.OrdinalIgnoreCase))
             .ToArray();
         var losers = bets
-            .Where(bet => !string.Equals(bet.TeamName, championTeamName, StringComparison.OrdinalIgnoreCase))
+            .Where(bet => !string.Equals(bet.SelectedText, championTeamName, StringComparison.OrdinalIgnoreCase))
             .ToArray();
 
         var losingStakePoolCc = losers.Sum(bet => bet.StakeAmountCc);

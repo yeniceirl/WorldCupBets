@@ -8,8 +8,7 @@ public sealed class GetLeaderboardHandler
         GetLeaderboardQuery query,
         IUserRepository userRepository,
         IMatchBetRepository matchBetRepository,
-        IChampionBetRepository championBetRepository,
-        ISpecialPlayerBetRepository specialPlayerBetRepository,
+        ITournamentPickRepository tournamentPickRepository,
         ITournamentSettlementRepository tournamentSettlementRepository,
         CancellationToken cancellationToken)
     {
@@ -18,8 +17,10 @@ public sealed class GetLeaderboardHandler
         var championSettled = await tournamentSettlementRepository.IsChampionSettledAsync(cancellationToken);
         var pendingChampionStakesByUser = championSettled
             ? new Dictionary<int, decimal>()
-            : await championBetRepository.ListStakeAmountsByUserAsync(cancellationToken);
-        var pendingSpecialPlayerStakesByUser = await specialPlayerBetRepository.ListStakeAmountsByUserAsync(cancellationToken);
+            : await tournamentPickRepository.ListStakeAmountsByUserAsync([Domain.Entities.TournamentPickCategory.Champion], cancellationToken);
+        var pendingSpecialPlayerStakesByUser = await tournamentPickRepository.ListStakeAmountsByUserAsync(
+            [Domain.Entities.TournamentPickCategory.BestPlayer, Domain.Entities.TournamentPickCategory.TopScorer],
+            cancellationToken);
 
         return users
             .Select(user =>

@@ -4,6 +4,6 @@ namespace WorldCupBets.Application.Features.Bets;
 
 public sealed record PlaceSpecialPlayerBetCommand(
     int UserId,
-    SpecialPlayerBetCategory Category,
+    TournamentPickCategory Category,
     string PlayerName,
     string? ExternalPlayerId);

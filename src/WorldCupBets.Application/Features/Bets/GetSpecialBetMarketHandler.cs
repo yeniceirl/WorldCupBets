@@ -7,11 +7,14 @@ public sealed class GetSpecialBetMarketHandler
     public static async Task<SpecialBetMarketDto> Handle(
         GetSpecialBetMarketQuery query,
         IMatchRepository matchRepository,
-        ISpecialPlayerBetRepository specialPlayerBetRepository,
+        ITournamentPickRepository tournamentPickRepository,
         CancellationToken cancellationToken)
     {
         var closesAtUtc = await matchRepository.GetChampionBettingClosesAtUtcAsync(cancellationToken);
-        var currentUserBets = await specialPlayerBetRepository.ListByUserAsync(query.UserId, cancellationToken);
+        var currentUserBets = await tournamentPickRepository.ListByUserAndCategoriesAsync(
+            query.UserId,
+            [Domain.Entities.TournamentPickCategory.BestPlayer, Domain.Entities.TournamentPickCategory.TopScorer],
+            cancellationToken);
         var nowUtc = DateTime.UtcNow;
 
         return new SpecialBetMarketDto(
@@ -19,7 +22,7 @@ public sealed class GetSpecialBetMarketHandler
             closesAtUtc,
             closesAtUtc is null || nowUtc < closesAtUtc.Value,
             currentUserBets
-                .Select(bet => new SpecialPlayerBetDto(bet.Category.ToString(), bet.PlayerName, bet.ExternalPlayerId, bet.StakeAmountCc, bet.PlacedAtUtc))
+                .Select(bet => new SpecialPlayerBetDto(bet.Category.ToString(), bet.SelectedText, bet.ExternalId, bet.StakeAmountCc, bet.PlacedAtUtc))
                 .ToArray());
     }
 }

@@ -13,7 +13,7 @@ public sealed class PlaceSpecialPlayerBetHandler
         PlaceSpecialPlayerBetCommand command,
         IUserRepository userRepository,
         IMatchRepository matchRepository,
-        ISpecialPlayerBetRepository specialPlayerBetRepository,
+        ITournamentPickRepository tournamentPickRepository,
         IApplicationTransactionFactory transactionFactory,
         CancellationToken cancellationToken)
     {
@@ -25,13 +25,18 @@ public sealed class PlaceSpecialPlayerBetHandler
             return Result<PlaceSpecialPlayerBetResultDto>.Failure(new Error("bets.user_not_found", "The bettor was not found."));
         }
 
+        if (command.Category is not TournamentPickCategory.BestPlayer and not TournamentPickCategory.TopScorer)
+        {
+            return Result<PlaceSpecialPlayerBetResultDto>.Failure(new Error("bets.invalid_player_category", "Category must be one of: BestPlayer, TopScorer."));
+        }
+
         var playerName = command.PlayerName.Trim();
         if (playerName.Length < 3)
         {
             return Result<PlaceSpecialPlayerBetResultDto>.Failure(new Error("bets.invalid_player_name", "Player name must have at least 3 characters."));
         }
 
-        if (await specialPlayerBetRepository.ExistsForUserAndCategoryAsync(command.UserId, command.Category, cancellationToken))
+        if (await tournamentPickRepository.ExistsForUserAndCategoryAsync(command.UserId, command.Category, cancellationToken))
         {
             return Result<PlaceSpecialPlayerBetResultDto>.Failure(new Error("bets.special_player_bet_already_exists", "You already placed this player bet."));
         }
@@ -52,8 +57,8 @@ public sealed class PlaceSpecialPlayerBetHandler
         user.DeductBalance(SpecialPlayerBetStakeAmountCc);
         user.ApplyDeadRescueIfEligible();
 
-        var specialPlayerBet = SpecialPlayerBet.Create(command.UserId, command.Category, playerName, externalPlayerId, SpecialPlayerBetStakeAmountCc, nowUtc);
-        await specialPlayerBetRepository.AddAsync(specialPlayerBet, cancellationToken);
+        var specialPlayerBet = TournamentPick.CreatePlayer(command.UserId, command.Category, playerName, externalPlayerId, SpecialPlayerBetStakeAmountCc, nowUtc);
+        await tournamentPickRepository.AddAsync(specialPlayerBet, cancellationToken);
         await userRepository.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 

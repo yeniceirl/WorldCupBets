@@ -17,10 +17,10 @@ public sealed class PlaceSpecialPlayerBetHandlerTests
         SetEntityId(user, 10);
 
         var result = await PlaceSpecialPlayerBetHandler.Handle(
-            new PlaceSpecialPlayerBetCommand(user.Id, SpecialPlayerBetCategory.BestPlayer, "Lionel Messi", "34146370"),
+            new PlaceSpecialPlayerBetCommand(user.Id, TournamentPickCategory.BestPlayer, "Lionel Messi", "34146370"),
             new StubUserRepository(user),
             new StubMatchRepository(new DateTime(2026, 6, 28, 18, 0, 0, DateTimeKind.Utc)),
-            new StubSpecialPlayerBetRepository(),
+            new StubTournamentPickRepository(),
             new NoopApplicationTransactionFactory(),
             CancellationToken.None);
 
@@ -39,13 +39,13 @@ public sealed class PlaceSpecialPlayerBetHandlerTests
     {
         var user = User.Create("google-1", "ada@example.com", "Ada");
         SetEntityId(user, 10);
-        var existingBet = SpecialPlayerBet.Create(user.Id, SpecialPlayerBetCategory.TopScorer, "Kylian Mbappe", "34161330", 50, DateTime.UtcNow);
+        var existingBet = TournamentPick.CreatePlayer(user.Id, TournamentPickCategory.TopScorer, "Kylian Mbappe", "34161330", 50, DateTime.UtcNow);
 
         var result = await PlaceSpecialPlayerBetHandler.Handle(
-            new PlaceSpecialPlayerBetCommand(user.Id, SpecialPlayerBetCategory.TopScorer, "Erling Haaland", "34161052"),
+            new PlaceSpecialPlayerBetCommand(user.Id, TournamentPickCategory.TopScorer, "Erling Haaland", "34161052"),
             new StubUserRepository(user),
             new StubMatchRepository(new DateTime(2026, 6, 28, 18, 0, 0, DateTimeKind.Utc)),
-            new StubSpecialPlayerBetRepository(existingBet),
+            new StubTournamentPickRepository(existingBet),
             new NoopApplicationTransactionFactory(),
             CancellationToken.None);
 
@@ -61,10 +61,10 @@ public sealed class PlaceSpecialPlayerBetHandlerTests
         SetEntityId(user, 10);
 
         var result = await PlaceSpecialPlayerBetHandler.Handle(
-            new PlaceSpecialPlayerBetCommand(user.Id, SpecialPlayerBetCategory.BestPlayer, "Lionel Messi", "34146370"),
+            new PlaceSpecialPlayerBetCommand(user.Id, TournamentPickCategory.BestPlayer, "Lionel Messi", "34146370"),
             new StubUserRepository(user),
             new StubMatchRepository(DateTime.UtcNow.AddMinutes(-1)),
-            new StubSpecialPlayerBetRepository(),
+            new StubTournamentPickRepository(),
             new NoopApplicationTransactionFactory(),
             CancellationToken.None);
 
@@ -80,10 +80,10 @@ public sealed class PlaceSpecialPlayerBetHandlerTests
         SetEntityId(user, 10);
 
         var result = await PlaceSpecialPlayerBetHandler.Handle(
-            new PlaceSpecialPlayerBetCommand(user.Id, SpecialPlayerBetCategory.BestPlayer, "Li", null),
+            new PlaceSpecialPlayerBetCommand(user.Id, TournamentPickCategory.BestPlayer, "Li", null),
             new StubUserRepository(user),
             new StubMatchRepository(new DateTime(2026, 6, 28, 18, 0, 0, DateTimeKind.Utc)),
-            new StubSpecialPlayerBetRepository(),
+            new StubTournamentPickRepository(),
             new NoopApplicationTransactionFactory(),
             CancellationToken.None);
 
@@ -174,28 +174,86 @@ public sealed class PlaceSpecialPlayerBetHandlerTests
         }
     }
 
-    private sealed class StubSpecialPlayerBetRepository(params SpecialPlayerBet[] seeded) : ISpecialPlayerBetRepository
+    [Fact]
+    public async Task Handle_Rejects_Champion_Category_For_Player_Bets()
     {
-        private readonly List<SpecialPlayerBet> specialPlayerBets = [.. seeded];
+        var user = User.Create("google-1", "ada@example.com", "Ada");
+        SetEntityId(user, 10);
 
-        public Task<bool> ExistsForUserAndCategoryAsync(int userId, SpecialPlayerBetCategory category, CancellationToken cancellationToken = default)
+        var result = await PlaceSpecialPlayerBetHandler.Handle(
+            new PlaceSpecialPlayerBetCommand(user.Id, TournamentPickCategory.Champion, "Argentina", null),
+            new StubUserRepository(user),
+            new StubMatchRepository(new DateTime(2026, 6, 28, 18, 0, 0, DateTimeKind.Utc)),
+            new StubTournamentPickRepository(),
+            new NoopApplicationTransactionFactory(),
+            CancellationToken.None);
+
+        Assert.True(result.IsFailure);
+        Assert.Equal("bets.invalid_player_category", result.Error?.Code);
+        Assert.Equal(1000, user.CurrentBalanceCc);
+    }
+
+    [Fact]
+    public async Task Market_Maps_Player_Tournament_Picks_To_Existing_Player_Bet_Dtos()
+    {
+        var user = User.Create("google-1", "ada@example.com", "Ada");
+        SetEntityId(user, 10);
+
+        var result = await GetSpecialBetMarketHandler.Handle(
+            new GetSpecialBetMarketQuery(user.Id),
+            new StubMatchRepository(new DateTime(2026, 6, 28, 18, 0, 0, DateTimeKind.Utc)),
+            new StubTournamentPickRepository(
+                TournamentPick.CreatePlayer(user.Id, TournamentPickCategory.BestPlayer, "Lionel Messi", "34146370", 50, DateTime.UtcNow),
+                TournamentPick.CreatePlayer(user.Id, TournamentPickCategory.TopScorer, "Kylian Mbappe", null, 50, DateTime.UtcNow)),
+            CancellationToken.None);
+
+        Assert.Collection(result.PlayerBets,
+            bet =>
+            {
+                Assert.Equal("BestPlayer", bet.Category);
+                Assert.Equal("Lionel Messi", bet.PlayerName);
+                Assert.Equal("34146370", bet.ExternalPlayerId);
+            },
+            bet =>
+            {
+                Assert.Equal("TopScorer", bet.Category);
+                Assert.Equal("Kylian Mbappe", bet.PlayerName);
+                Assert.Null(bet.ExternalPlayerId);
+            });
+    }
+
+    private sealed class StubTournamentPickRepository(params TournamentPick[] seeded) : ITournamentPickRepository
+    {
+        private readonly List<TournamentPick> tournamentPicks = [.. seeded];
+
+        public Task<bool> ExistsForUserAndCategoryAsync(int userId, TournamentPickCategory category, CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(specialPlayerBets.Any(specialPlayerBet => specialPlayerBet.UserId == userId && specialPlayerBet.Category == category));
+            return Task.FromResult(tournamentPicks.Any(tournamentPick => tournamentPick.UserId == userId && tournamentPick.Category == category));
         }
 
-        public Task<IReadOnlyList<SpecialPlayerBet>> ListByUserAsync(int userId, CancellationToken cancellationToken = default)
+        public Task<TournamentPick?> GetByUserAndCategoryAsync(int userId, TournamentPickCategory category, CancellationToken cancellationToken = default)
         {
-            return Task.FromResult<IReadOnlyList<SpecialPlayerBet>>(specialPlayerBets.Where(specialPlayerBet => specialPlayerBet.UserId == userId).ToArray());
+            return Task.FromResult(tournamentPicks.SingleOrDefault(tournamentPick => tournamentPick.UserId == userId && tournamentPick.Category == category));
         }
 
-        public Task<IReadOnlyDictionary<int, decimal>> ListStakeAmountsByUserAsync(CancellationToken cancellationToken = default)
+        public Task<IReadOnlyList<TournamentPick>> ListByUserAndCategoriesAsync(int userId, IReadOnlyCollection<TournamentPickCategory> categories, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<TournamentPick>>(tournamentPicks.Where(tournamentPick => tournamentPick.UserId == userId && categories.Contains(tournamentPick.Category)).ToArray());
+        }
+
+        public Task<IReadOnlyList<TournamentPick>> ListChampionForSettlementAsync(CancellationToken cancellationToken = default)
         {
             throw new NotSupportedException();
         }
 
-        public Task AddAsync(SpecialPlayerBet specialPlayerBet, CancellationToken cancellationToken = default)
+        public Task<IReadOnlyDictionary<int, decimal>> ListStakeAmountsByUserAsync(IReadOnlyCollection<TournamentPickCategory> categories, CancellationToken cancellationToken = default)
         {
-            specialPlayerBets.Add(specialPlayerBet);
+            throw new NotSupportedException();
+        }
+
+        public Task AddAsync(TournamentPick pick, CancellationToken cancellationToken = default)
+        {
+            tournamentPicks.Add(pick);
             return Task.CompletedTask;
         }
     }

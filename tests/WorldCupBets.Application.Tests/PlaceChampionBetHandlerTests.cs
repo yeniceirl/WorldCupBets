@@ -20,7 +20,7 @@ public sealed class PlaceChampionBetHandlerTests
             new PlaceChampionBetCommand(user.Id, "Argentina"),
             new StubUserRepository(user),
             new StubMatchRepository(["Argentina", "Japan"], new DateTime(2026, 6, 30, 18, 0, 0, DateTimeKind.Utc)),
-            new StubChampionBetRepository(),
+            new StubTournamentPickRepository(),
             new NoopApplicationTransactionFactory(),
             CancellationToken.None);
 
@@ -37,13 +37,13 @@ public sealed class PlaceChampionBetHandlerTests
     {
         var user = User.Create("google-1", "ada@example.com", "Ada");
         SetEntityId(user, 10);
-        var existingBet = ChampionBet.Create(user.Id, "Argentina", 50, DateTime.UtcNow);
+        var existingBet = TournamentPick.CreateChampion(user.Id, "Argentina", 50, DateTime.UtcNow);
 
         var result = await PlaceChampionBetHandler.Handle(
             new PlaceChampionBetCommand(user.Id, "Japan"),
             new StubUserRepository(user),
             new StubMatchRepository(["Argentina", "Japan"], new DateTime(2026, 6, 30, 18, 0, 0, DateTimeKind.Utc)),
-            new StubChampionBetRepository(existingBet),
+            new StubTournamentPickRepository(existingBet),
             new NoopApplicationTransactionFactory(),
             CancellationToken.None);
 
@@ -61,7 +61,7 @@ public sealed class PlaceChampionBetHandlerTests
             new PlaceChampionBetCommand(user.Id, "Argentina"),
             new StubUserRepository(user),
             new StubMatchRepository(["Argentina", "Japan"], DateTime.UtcNow.AddMinutes(-1)),
-            new StubChampionBetRepository(),
+            new StubTournamentPickRepository(),
             new NoopApplicationTransactionFactory(),
             CancellationToken.None);
 
@@ -80,7 +80,7 @@ public sealed class PlaceChampionBetHandlerTests
             new PlaceChampionBetCommand(user.Id, "Argentina"),
             new StubUserRepository(user),
             new StubMatchRepository(["Argentina", "Japan"], new DateTime(2026, 6, 30, 18, 0, 0, DateTimeKind.Utc)),
-            new StubChampionBetRepository(),
+            new StubTournamentPickRepository(),
             new NoopApplicationTransactionFactory(),
             CancellationToken.None);
 
@@ -89,6 +89,23 @@ public sealed class PlaceChampionBetHandlerTests
         Assert.Equal(1, user.RescueCount);
         Assert.Equal(User.DeadRescueAmountCc, user.RescueDebtCc);
         Assert.Equal(User.DeadRescueAmountCc, result.Value!.RemainingBalanceCc);
+    }
+
+    [Fact]
+    public async Task Market_Maps_Current_Champion_Pick_Selected_Text_To_Team_Name()
+    {
+        var user = User.Create("google-1", "ada@example.com", "Ada");
+        SetEntityId(user, 10);
+
+        var result = await GetChampionBetMarketHandler.Handle(
+            new GetChampionBetMarketQuery(user.Id),
+            new StubMatchRepository(["Argentina", "Japan"], new DateTime(2026, 6, 30, 18, 0, 0, DateTimeKind.Utc)),
+            new StubTournamentPickRepository(TournamentPick.CreateChampion(user.Id, "Argentina", 50, DateTime.UtcNow)),
+            new StubTournamentSettlementRepository(),
+            CancellationToken.None);
+
+        Assert.Equal("Argentina", result.CurrentUserChampionTeamName);
+        Assert.Equal(["Argentina", "Japan"], result.TeamOptions);
     }
 
     private static void SetEntityId(Entity entity, int id)
@@ -179,33 +196,51 @@ public sealed class PlaceChampionBetHandlerTests
         }
     }
 
-    private sealed class StubChampionBetRepository(params ChampionBet[] seeded) : IChampionBetRepository
+    private sealed class StubTournamentSettlementRepository : ITournamentSettlementRepository
     {
-        private readonly List<ChampionBet> championBets = [.. seeded];
-
-        public Task<bool> ExistsForUserAsync(int userId, CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult(championBets.Any(championBet => championBet.UserId == userId));
-        }
-
-        public Task<ChampionBet?> GetByUserAsync(int userId, CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult(championBets.SingleOrDefault(championBet => championBet.UserId == userId));
-        }
-
-        public Task<IReadOnlyList<ChampionBet>> ListForSettlementAsync(CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult<IReadOnlyList<ChampionBet>>(championBets.ToArray());
-        }
-
-        public Task<IReadOnlyDictionary<int, decimal>> ListStakeAmountsByUserAsync(CancellationToken cancellationToken = default)
+        public Task<TournamentSettlement> GetOrCreateSingletonAsync(CancellationToken cancellationToken = default)
         {
             throw new NotSupportedException();
         }
 
-        public Task AddAsync(ChampionBet championBet, CancellationToken cancellationToken = default)
+        public Task<bool> IsChampionSettledAsync(CancellationToken cancellationToken = default)
         {
-            championBets.Add(championBet);
+            return Task.FromResult(false);
+        }
+    }
+
+    private sealed class StubTournamentPickRepository(params TournamentPick[] seeded) : ITournamentPickRepository
+    {
+        private readonly List<TournamentPick> tournamentPicks = [.. seeded];
+
+        public Task<bool> ExistsForUserAndCategoryAsync(int userId, TournamentPickCategory category, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(tournamentPicks.Any(tournamentPick => tournamentPick.UserId == userId && tournamentPick.Category == category));
+        }
+
+        public Task<TournamentPick?> GetByUserAndCategoryAsync(int userId, TournamentPickCategory category, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(tournamentPicks.SingleOrDefault(tournamentPick => tournamentPick.UserId == userId && tournamentPick.Category == category));
+        }
+
+        public Task<IReadOnlyList<TournamentPick>> ListByUserAndCategoriesAsync(int userId, IReadOnlyCollection<TournamentPickCategory> categories, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<TournamentPick>>(tournamentPicks.Where(tournamentPick => tournamentPick.UserId == userId && categories.Contains(tournamentPick.Category)).ToArray());
+        }
+
+        public Task<IReadOnlyList<TournamentPick>> ListChampionForSettlementAsync(CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<IReadOnlyDictionary<int, decimal>> ListStakeAmountsByUserAsync(IReadOnlyCollection<TournamentPickCategory> categories, CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task AddAsync(TournamentPick pick, CancellationToken cancellationToken = default)
+        {
+            tournamentPicks.Add(pick);
             return Task.CompletedTask;
         }
     }

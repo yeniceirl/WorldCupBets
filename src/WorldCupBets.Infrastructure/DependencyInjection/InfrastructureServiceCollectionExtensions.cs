@@ -3,6 +3,7 @@ using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using WorldCupBets.Application.Abstractions;
+using WorldCupBets.Application.Features.FootballData;
 using WorldCupBets.Domain.Repositories;
 using WorldCupBets.Infrastructure.Authentication;
 using WorldCupBets.Infrastructure.Caching;
@@ -63,7 +64,6 @@ public static class InfrastructureServiceCollectionExtensions
         {
             ApiKey = apiSportsSection["ApiKey"] ?? string.Empty,
             BaseUrl = apiSportsSection["BaseUrl"] ?? "https://v3.football.api-sports.io",
-            SquadCacheHours = int.TryParse(apiSportsSection["SquadCacheHours"], out var squadCacheHours) ? squadCacheHours : 24,
             IncludedTeamNames = includedTeamNames.Length > 0
                 ? new HashSet<string>(includedTeamNames, StringComparer.OrdinalIgnoreCase)
                 : new HashSet<string>(ApiSportsFootballOptions.DefaultIncludedTeamNames, StringComparer.OrdinalIgnoreCase),
@@ -71,6 +71,7 @@ public static class InfrastructureServiceCollectionExtensions
 
         services.AddSingleton(options);
         services.AddSingleton(apiSportsOptions);
+        services.AddSingleton(new ApiSportsFootballSyncOptions(apiSportsOptions.ApiKey, apiSportsOptions.IncludedTeamNames));
         services.AddSingleton<IFootballDataProvider>(serviceProvider =>
         {
             var httpClient = new HttpClient
@@ -94,6 +95,9 @@ public static class InfrastructureServiceCollectionExtensions
                 serviceProvider.GetRequiredService<IExternalFootballDataRepository>(),
                 serviceProvider.GetRequiredService<HybridCache>());
         });
+        services.AddScoped<IPlayerSquadProvider>(_ => new ApiSportsPlayerSquadProvider(
+            new HttpClient { BaseAddress = new Uri(apiSportsOptions.BaseUrl) },
+            apiSportsOptions));
 
         return services;
     }

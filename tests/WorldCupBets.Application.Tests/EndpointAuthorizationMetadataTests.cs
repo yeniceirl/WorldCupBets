@@ -19,6 +19,7 @@ public sealed class EndpointAuthorizationMetadataTests
         "/api/matches/{id:int}/result",
         "/api/bets/champion/settlement",
         "/api/football-data/sync",
+        "/api/football-data/players/sync",
         "/api/football-data/fixtures/group-stage/import"
     ];
 

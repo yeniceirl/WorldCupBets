@@ -51,6 +51,17 @@ public static class FootballDataEndpoints
         .Produces(StatusCodes.Status401Unauthorized)
         .Produces(StatusCodes.Status403Forbidden);
 
+        group.MapPost("/players/sync", [Authorize(Policy = "Admin")] async (IMessageBus messageBus, CancellationToken cancellationToken) =>
+        {
+            var result = await messageBus.InvokeAsync<SyncPlayerSquadsResultDto>(new SyncPlayerSquadsCommand(), cancellationToken);
+            return Results.Ok(result);
+        })
+        .WithName("SyncPlayerSquads")
+        .WithSummary("Synchronize national-team squads from the external provider into the persisted player index.")
+        .Produces<SyncPlayerSquadsResultDto>(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status401Unauthorized)
+        .Produces(StatusCodes.Status403Forbidden);
+
         group.MapPost("/fixtures/group-stage/import", [Authorize(Policy = "Admin")] async (IMessageBus messageBus, CancellationToken cancellationToken) =>
         {
             var result = await messageBus.InvokeAsync<ImportGroupStageFixturesResultDto>(new ImportGroupStageFixturesCommand(), cancellationToken);

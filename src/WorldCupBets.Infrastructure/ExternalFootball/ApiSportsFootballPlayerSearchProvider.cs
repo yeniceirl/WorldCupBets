@@ -16,6 +16,11 @@ public sealed class ApiSportsFootballPlayerSearchProvider(
 {
     private const string SquadIndexCacheKey = "api-sports:worldcup26:squad-index:v1";
 
+    // TODO(player-squad-sync Phase 3): this provider is being rewritten to read persisted
+    // ExternalFootballPlayer rows instead of building a live HybridCache index. This constant
+    // is a temporary placeholder for the removed ApiSportsFootballOptions.SquadCacheHours setting.
+    private static readonly TimeSpan SquadIndexCacheDuration = TimeSpan.FromHours(24);
+
     public async Task<IReadOnlyList<PlayerSearchResultDto>> SearchAsync(string query, CancellationToken cancellationToken = default)
     {
         var normalizedQuery = Normalize(query);
@@ -29,8 +34,8 @@ public sealed class ApiSportsFootballPlayerSearchProvider(
             BuildPlayerIndexAsync,
             new HybridCacheEntryOptions
             {
-                Expiration = TimeSpan.FromHours(Math.Max(1, options.SquadCacheHours)),
-                LocalCacheExpiration = TimeSpan.FromHours(Math.Min(2, Math.Max(1, options.SquadCacheHours))),
+                Expiration = SquadIndexCacheDuration,
+                LocalCacheExpiration = TimeSpan.FromHours(2),
             },
             cancellationToken: cancellationToken);
 

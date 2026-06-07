@@ -120,7 +120,6 @@ public static class BetsEndpoints
                     "bets.invalid_champion_team" => Results.BadRequest(new { error = result.Error.Message }),
                     "bets.champion_betting_closed" => Results.BadRequest(new { error = result.Error.Message }),
                     "bets.insufficient_balance" => Results.BadRequest(new { error = result.Error.Message }),
-                    "bets.champion_bet_already_exists" => Results.Conflict(new { error = result.Error.Message }),
                     "bets.user_not_found" => Results.Unauthorized(),
                     _ => Results.BadRequest(new { error = result.Error?.Message ?? "The champion bet could not be placed." })
                 };
@@ -236,7 +235,6 @@ public static class BetsEndpoints
                     "bets.invalid_player_name" => Results.BadRequest(new { error = result.Error.Message }),
                     "bets.special_betting_closed" => Results.BadRequest(new { error = result.Error.Message }),
                     "bets.insufficient_balance" => Results.BadRequest(new { error = result.Error.Message }),
-                    "bets.special_player_bet_already_exists" => Results.Conflict(new { error = result.Error.Message }),
                     "bets.user_not_found" => Results.Unauthorized(),
                     _ => Results.BadRequest(new { error = result.Error?.Message ?? "The player bet could not be placed." })
                 };

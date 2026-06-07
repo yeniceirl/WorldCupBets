@@ -6,15 +6,16 @@ namespace WorldCupBets.Infrastructure.Persistence.Repositories;
 
 public sealed class TournamentPickRepository(AppDbContext dbContext) : ITournamentPickRepository
 {
-    public Task<bool> ExistsForUserAndCategoryAsync(int userId, TournamentPickCategory category, CancellationToken cancellationToken = default)
-    {
-        return dbContext.TournamentPicks.AnyAsync(tournamentPick => tournamentPick.UserId == userId && tournamentPick.Category == category, cancellationToken);
-    }
-
     public Task<TournamentPick?> GetByUserAndCategoryAsync(int userId, TournamentPickCategory category, CancellationToken cancellationToken = default)
     {
         return dbContext.TournamentPicks
             .AsNoTracking()
+            .SingleOrDefaultAsync(tournamentPick => tournamentPick.UserId == userId && tournamentPick.Category == category, cancellationToken);
+    }
+
+    public Task<TournamentPick?> GetTrackedByUserAndCategoryAsync(int userId, TournamentPickCategory category, CancellationToken cancellationToken = default)
+    {
+        return dbContext.TournamentPicks
             .SingleOrDefaultAsync(tournamentPick => tournamentPick.UserId == userId && tournamentPick.Category == category, cancellationToken);
     }
 

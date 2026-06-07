@@ -43,6 +43,27 @@ public sealed class TournamentPick : Entity
         return new TournamentPick(userId, TournamentPickCategory.Champion, teamName.Trim(), null, stakeAmountCc, placedAtUtc);
     }
 
+    public void ChangeChampionSelection(string teamName)
+    {
+        if (Category != TournamentPickCategory.Champion)
+        {
+            throw new InvalidOperationException("Only champion picks can change their team selection.");
+        }
+
+        SelectedText = teamName.Trim();
+    }
+
+    public void ChangePlayerSelection(string playerName, string? externalPlayerId)
+    {
+        if (Category is not TournamentPickCategory.BestPlayer and not TournamentPickCategory.TopScorer)
+        {
+            throw new InvalidOperationException("Only player picks can change their player selection.");
+        }
+
+        SelectedText = playerName.Trim();
+        ExternalId = externalPlayerId?.Trim();
+    }
+
     public static TournamentPick CreatePlayer(
         int userId,
         TournamentPickCategory category,

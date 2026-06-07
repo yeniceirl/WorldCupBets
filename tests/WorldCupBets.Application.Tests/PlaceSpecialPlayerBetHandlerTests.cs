@@ -35,11 +35,13 @@ public sealed class PlaceSpecialPlayerBetHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Rejects_Duplicate_Special_Player_Bet_For_Same_Category()
+    public async Task Handle_Changes_Existing_Special_Player_Selection_Without_Charging_Again()
     {
         var user = User.Create("google-1", "ada@example.com", "Ada");
         SetEntityId(user, 10);
-        var existingBet = TournamentPick.CreatePlayer(user.Id, TournamentPickCategory.TopScorer, "Kylian Mbappe", "34161330", 50, DateTime.UtcNow);
+        user.DeductBalance(50);
+        var placedAtUtc = new DateTime(2026, 6, 1, 12, 0, 0, DateTimeKind.Utc);
+        var existingBet = TournamentPick.CreatePlayer(user.Id, TournamentPickCategory.TopScorer, "Kylian Mbappe", "34161330", 50, placedAtUtc);
 
         var result = await PlaceSpecialPlayerBetHandler.Handle(
             new PlaceSpecialPlayerBetCommand(user.Id, TournamentPickCategory.TopScorer, "Erling Haaland", "34161052"),
@@ -49,9 +51,16 @@ public sealed class PlaceSpecialPlayerBetHandlerTests
             new NoopApplicationTransactionFactory(),
             CancellationToken.None);
 
-        Assert.True(result.IsFailure);
-        Assert.Equal("bets.special_player_bet_already_exists", result.Error?.Code);
-        Assert.Equal(1000, user.CurrentBalanceCc);
+        Assert.True(result.IsSuccess);
+        Assert.Equal("TopScorer", result.Value!.Category);
+        Assert.Equal("Erling Haaland", result.Value.PlayerName);
+        Assert.Equal("34161052", result.Value.ExternalPlayerId);
+        Assert.Equal("Erling Haaland", existingBet.SelectedText);
+        Assert.Equal("34161052", existingBet.ExternalId);
+        Assert.Equal(50, result.Value.StakeAmountCc);
+        Assert.Equal(placedAtUtc, result.Value.PlacedAtUtc);
+        Assert.Equal(950, user.CurrentBalanceCc);
+        Assert.Equal(950, result.Value.RemainingBalanceCc);
     }
 
     [Fact]
@@ -230,12 +239,12 @@ public sealed class PlaceSpecialPlayerBetHandlerTests
     {
         private readonly List<TournamentPick> tournamentPicks = [.. seeded];
 
-        public Task<bool> ExistsForUserAndCategoryAsync(int userId, TournamentPickCategory category, CancellationToken cancellationToken = default)
+        public Task<TournamentPick?> GetByUserAndCategoryAsync(int userId, TournamentPickCategory category, CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(tournamentPicks.Any(tournamentPick => tournamentPick.UserId == userId && tournamentPick.Category == category));
+            return Task.FromResult(tournamentPicks.SingleOrDefault(tournamentPick => tournamentPick.UserId == userId && tournamentPick.Category == category));
         }
 
-        public Task<TournamentPick?> GetByUserAndCategoryAsync(int userId, TournamentPickCategory category, CancellationToken cancellationToken = default)
+        public Task<TournamentPick?> GetTrackedByUserAndCategoryAsync(int userId, TournamentPickCategory category, CancellationToken cancellationToken = default)
         {
             return Task.FromResult(tournamentPicks.SingleOrDefault(tournamentPick => tournamentPick.UserId == userId && tournamentPick.Category == category));
         }

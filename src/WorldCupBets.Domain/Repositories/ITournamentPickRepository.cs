@@ -4,9 +4,9 @@ namespace WorldCupBets.Domain.Repositories;
 
 public interface ITournamentPickRepository
 {
-    Task<bool> ExistsForUserAndCategoryAsync(int userId, TournamentPickCategory category, CancellationToken cancellationToken = default);
-
     Task<TournamentPick?> GetByUserAndCategoryAsync(int userId, TournamentPickCategory category, CancellationToken cancellationToken = default);
+
+    Task<TournamentPick?> GetTrackedByUserAndCategoryAsync(int userId, TournamentPickCategory category, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<TournamentPick>> ListByUserAndCategoriesAsync(int userId, IReadOnlyCollection<TournamentPickCategory> categories, CancellationToken cancellationToken = default);
 

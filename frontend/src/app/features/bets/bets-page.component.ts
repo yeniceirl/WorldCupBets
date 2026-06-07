@@ -83,16 +83,17 @@ interface PlayerBetDefinition {
 									<img class="h-16 w-16 shrink-0 rounded-full object-cover" [src]="championMarket()!.currentUserChampionTeamFlagUrl" [alt]="championMarket()!.currentUserChampionTeamName!" />
 								}
 							</div>
-							@if (!championMarket()!.currentUserChampionTeamName) {
+							@if (championMarket()!.isBettingOpen) {
 								<div class="mt-4 grid gap-3">
+									<p class="text-sm font-medium text-slate-800 dark:text-slate-200">{{ championMarket()!.currentUserChampionTeamName ? "Change your champion pick" : "Pick your champion" }}</p>
 									<select #championTeamSelect class="min-w-0 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-white" (change)="selectedChampionTeamName.set(championTeamSelect.value)" data-testid="champion-team-select">
 										<option value="">Select a team</option>
 										@for (teamName of championMarket()!.teamOptions; track teamName) {
-											<option [value]="teamName">{{ teamName }}</option>
+											<option [value]="teamName" [selected]="teamName === championMarket()!.currentUserChampionTeamName">{{ teamName }}</option>
 										}
 									</select>
-									<button type="button" class="rounded-xl border border-sky-600 bg-sky-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60" (click)="placeChampionBet()" [disabled]="!selectedChampionTeamName() || !championMarket()!.isBettingOpen || isSubmittingChampionBet()" data-testid="place-champion-bet-button">
-										Place champion bet
+									<button type="button" class="rounded-xl border border-sky-600 bg-sky-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60" (click)="placeChampionBet()" [disabled]="!selectedChampionTeamName() || selectedChampionTeamName() === championMarket()!.currentUserChampionTeamName || isSubmittingChampionBet()" data-testid="place-champion-bet-button">
+										{{ championMarket()!.currentUserChampionTeamName ? "Update champion bet" : "Place champion bet" }}
 									</button>
 								</div>
 							}
@@ -112,8 +113,9 @@ interface PlayerBetDefinition {
 											<img class="h-16 w-16 shrink-0 rounded-full object-cover" [src]="existingBet.playerPhotoUrl" [alt]="existingBet.playerName" />
 										}
 									</div>
-								} @else {
-									<p class="mt-2 text-sm text-slate-600 dark:text-slate-300">{{ definition.description }}</p>
+								}
+								@if (specialMarket()!.isBettingOpen) {
+									<p class="mt-2 text-sm text-slate-600 dark:text-slate-300">{{ getSpecialPlayerBet(definition.category) ? "Change your pick" : definition.description }}</p>
 									<div class="mt-4 grid gap-3">
 										<input class="min-w-0 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-white" [placeholder]="definition.placeholder" [value]="getSelectedPlayerName(definition.category)" (input)="onPlayerInput(definition.category, $any($event.target).value)" [attr.data-testid]="'special-player-search-' + definition.category" />
 										@if (getPlayerOptions(definition.category).length > 0) {
@@ -131,8 +133,8 @@ interface PlayerBetDefinition {
 												}
 											</div>
 										}
-										<button type="button" class="rounded-xl border border-sky-600 bg-sky-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60" (click)="placeSpecialPlayerBet(definition.category)" [disabled]="!getSelectedPlayer(definition.category) || !specialMarket()!.isBettingOpen || submittingSpecialCategory() === definition.category" [attr.data-testid]="'place-special-player-bet-' + definition.category">
-											Place {{ definition.label.toLowerCase() }} bet
+										<button type="button" class="rounded-xl border border-sky-600 bg-sky-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60" (click)="placeSpecialPlayerBet(definition.category)" [disabled]="!getSelectedPlayer(definition.category) || submittingSpecialCategory() === definition.category" [attr.data-testid]="'place-special-player-bet-' + definition.category">
+											{{ getSpecialPlayerBet(definition.category) ? "Update" : "Place" }} {{ definition.label.toLowerCase() }} bet
 										</button>
 									</div>
 								}
@@ -311,9 +313,9 @@ export class BetsPageComponent {
 
 		this.matchesService.placeChampionBet({ teamName: this.selectedChampionTeamName() }).subscribe({
 			next: (result) => {
-				this.championMarket.set({ ...this.championMarket()!, currentUserChampionTeamName: result.teamName });
-				this.successMessage.set(`Champion bet placed for ${result.teamName}. Remaining balance: ${formatCopaCoin(result.remainingBalanceCc)} CC.`);
+				this.successMessage.set(`Champion bet set to ${result.teamName}. Remaining balance: ${formatCopaCoin(result.remainingBalanceCc)} CC.`);
 				this.selectedChampionTeamName.set("");
+				this.refreshChampionMarket();
 				this.refreshUserSummary();
 				this.isSubmittingChampionBet.set(false);
 			},
@@ -341,15 +343,9 @@ export class BetsPageComponent {
 
 		this.matchesService.placeSpecialPlayerBet({ category, playerName, externalPlayerId: selectedPlayer.externalId }).subscribe({
 			next: (result) => {
-				this.specialMarket.set({
-					...this.specialMarket()!,
-					playerBets: [
-						...this.specialMarket()!.playerBets,
-						{ category: result.category, playerName: result.playerName, externalPlayerId: result.externalPlayerId, playerPhotoUrl: selectedPlayer.thumbnailUrl, stakeAmountCc: result.stakeAmountCc, placedAtUtc: result.placedAtUtc },
-					],
-				});
-				this.successMessage.set(`${this.getPlayerBetLabel(category)} bet placed for ${result.playerName}. Remaining balance: ${formatCopaCoin(result.remainingBalanceCc)} CC.`);
+				this.successMessage.set(`${this.getPlayerBetLabel(category)} bet set to ${result.playerName}. Remaining balance: ${formatCopaCoin(result.remainingBalanceCc)} CC.`);
 				this.clearSelectedPlayer(category);
+				this.refreshSpecialMarket();
 				this.refreshUserSummary();
 				this.submittingSpecialCategory.set(null);
 			},
@@ -422,6 +418,20 @@ export class BetsPageComponent {
 		this.matchesService.getCurrentUserSummary().subscribe({
 			next: (userSummary) => this.userSummary.set(userSummary),
 			error: () => this.errorMessage.set("Your bet was saved, but the wallet could not refresh. Reload the page to confirm the latest balance."),
+		});
+	}
+
+	private refreshChampionMarket(): void {
+		this.matchesService.getChampionBetMarket().subscribe({
+			next: (championMarket) => this.championMarket.set(championMarket),
+			error: () => this.errorMessage.set("Your pick was saved, but the champion card could not refresh. Reload the page to confirm it."),
+		});
+	}
+
+	private refreshSpecialMarket(): void {
+		this.matchesService.getSpecialBetMarket().subscribe({
+			next: (specialMarket) => this.specialMarket.set(specialMarket),
+			error: () => this.errorMessage.set("Your pick was saved, but the player card could not refresh. Reload the page to confirm it."),
 		});
 	}
 

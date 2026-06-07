@@ -59,8 +59,8 @@ public sealed class TournamentPickRulesTests
             .Select(method => method.Name)
             .ToArray();
 
-        Assert.Contains(nameof(ITournamentPickRepository.ExistsForUserAndCategoryAsync), methodNames);
         Assert.Contains(nameof(ITournamentPickRepository.GetByUserAndCategoryAsync), methodNames);
+        Assert.Contains(nameof(ITournamentPickRepository.GetTrackedByUserAndCategoryAsync), methodNames);
         Assert.Contains(nameof(ITournamentPickRepository.ListByUserAndCategoriesAsync), methodNames);
         Assert.Contains(nameof(ITournamentPickRepository.ListChampionForSettlementAsync), methodNames);
         Assert.Contains(nameof(ITournamentPickRepository.ListStakeAmountsByUserAsync), methodNames);

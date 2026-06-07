@@ -36,11 +36,6 @@ public sealed class PlaceSpecialPlayerBetHandler
             return Result<PlaceSpecialPlayerBetResultDto>.Failure(new Error("bets.invalid_player_name", "Player name must have at least 3 characters."));
         }
 
-        if (await tournamentPickRepository.ExistsForUserAndCategoryAsync(command.UserId, command.Category, cancellationToken))
-        {
-            return Result<PlaceSpecialPlayerBetResultDto>.Failure(new Error("bets.special_player_bet_already_exists", "You already placed this player bet."));
-        }
-
         var closesAtUtc = await matchRepository.GetChampionBettingClosesAtUtcAsync(cancellationToken);
         var nowUtc = DateTime.UtcNow;
         if (closesAtUtc is not null && nowUtc >= closesAtUtc.Value)
@@ -48,12 +43,29 @@ public sealed class PlaceSpecialPlayerBetHandler
             return Result<PlaceSpecialPlayerBetResultDto>.Failure(new Error("bets.special_betting_closed", "Tournament special betting is already closed."));
         }
 
+        var externalPlayerId = string.IsNullOrWhiteSpace(command.ExternalPlayerId) ? null : command.ExternalPlayerId.Trim();
+
+        var existingPlayerBet = await tournamentPickRepository.GetTrackedByUserAndCategoryAsync(command.UserId, command.Category, cancellationToken);
+        if (existingPlayerBet is not null)
+        {
+            existingPlayerBet.ChangePlayerSelection(playerName, externalPlayerId);
+            await userRepository.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+
+            return Result<PlaceSpecialPlayerBetResultDto>.Success(new PlaceSpecialPlayerBetResultDto(
+                command.Category.ToString(),
+                playerName,
+                externalPlayerId,
+                existingPlayerBet.StakeAmountCc,
+                user.CurrentBalanceCc,
+                existingPlayerBet.PlacedAtUtc));
+        }
+
         if (!user.CanAfford(SpecialPlayerBetStakeAmountCc))
         {
             return Result<PlaceSpecialPlayerBetResultDto>.Failure(new Error("bets.insufficient_balance", "You do not have enough CopaCoin to place this bet."));
         }
 
-        var externalPlayerId = string.IsNullOrWhiteSpace(command.ExternalPlayerId) ? null : command.ExternalPlayerId.Trim();
         user.DeductBalance(SpecialPlayerBetStakeAmountCc);
         user.ApplyDeadRescueIfEligible();
 

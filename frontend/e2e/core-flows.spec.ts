@@ -102,6 +102,34 @@ test("my bets can place champion, best player, and top scorer picks", async ({ p
 	await expect(page.getByText("3/3")).toBeVisible();
 });
 
+test("my bets allows changing an existing champion and player pick without re-charging", async ({ page }) => {
+	await page.goto("/bets");
+
+	await page.getByTestId("champion-team-select").selectOption("Argentina");
+	await page.getByTestId("place-champion-bet-button").click();
+	await expect(page.getByTestId("champion-market-card")).toContainText("Argentina");
+
+	await page.getByPlaceholder("Type at least 3 characters").first().fill("Lio");
+	await page.getByRole("button", { name: /Lionel Messi/ }).click();
+	await page.getByTestId("place-special-player-bet-BestPlayer").click();
+	await expect(page.getByTestId("special-player-bet-BestPlayer")).toContainText("Lionel Messi");
+
+	await expect(page.getByTestId("place-champion-bet-button")).toHaveText("Update champion bet");
+	await page.getByTestId("champion-team-select").selectOption("Japan");
+	await page.getByTestId("place-champion-bet-button").click();
+	await expect(page.getByTestId("champion-market-card")).toContainText("Japan");
+	await expect(page.getByTestId("champion-market-card")).not.toContainText("Argentina");
+
+	await expect(page.getByTestId("place-special-player-bet-BestPlayer")).toHaveText(/Update best player bet/i);
+	await page.getByPlaceholder("Type at least 3 characters").first().fill("Kyl");
+	await page.getByRole("button", { name: /Kylian Mbappe/ }).click();
+	await page.getByTestId("place-special-player-bet-BestPlayer").click();
+	await expect(page.getByTestId("special-player-bet-BestPlayer")).toContainText("Kylian Mbappe");
+	await expect(page.getByTestId("special-player-bet-BestPlayer")).not.toContainText("Lionel Messi");
+
+	await expect(page.getByText("3/3")).toBeVisible();
+});
+
 test.describe("admin player squad sync", () => {
 	test.beforeEach(async ({ page }) => {
 		await page.addInitScript(() => {
@@ -144,17 +172,29 @@ test.describe("admin player squad sync", () => {
 });
 
 async function mockApi(page: Page): Promise<void> {
+	let currentChampionMarket = { ...championMarket };
+	let currentSpecialMarket = { ...specialMarket, playerBets: [...specialMarket.playerBets] };
+
 	await page.route("**/api/me/summary", async (route) => route.fulfill({ json: userSummary }));
 	await page.route("**/api/bets/champion", async (route) => {
 		if (route.request().method() === "POST") {
-			return route.fulfill({ json: { teamName: "Argentina", stakeAmountCc: 50, remainingBalanceCc: 950, placedAtUtc: "2026-06-01T00:00:00Z" } });
+			const request = route.request().postDataJSON() as { teamName: string };
+			currentChampionMarket = { ...currentChampionMarket, currentUserChampionTeamName: request.teamName };
+			return route.fulfill({ json: { teamName: request.teamName, stakeAmountCc: 50, remainingBalanceCc: 950, placedAtUtc: "2026-06-01T00:00:00Z" } });
 		}
 
-		return route.fulfill({ json: championMarket });
+		return route.fulfill({ json: currentChampionMarket });
 	});
-	await page.route("**/api/bets/special", async (route) => route.fulfill({ json: specialMarket }));
+	await page.route("**/api/bets/special", async (route) => route.fulfill({ json: currentSpecialMarket }));
 	await page.route("**/api/bets/special/player", async (route) => {
 		const request = route.request().postDataJSON() as { category: "BestPlayer" | "TopScorer"; playerName: string; externalPlayerId: string | null };
+		currentSpecialMarket = {
+			...currentSpecialMarket,
+			playerBets: [
+				...currentSpecialMarket.playerBets.filter((bet) => bet.category !== request.category),
+				{ category: request.category, playerName: request.playerName, externalPlayerId: request.externalPlayerId, playerPhotoUrl: null, stakeAmountCc: 50, placedAtUtc: "2026-06-01T00:00:00Z" },
+			],
+		};
 		return route.fulfill({
 			json: {
 				category: request.category,

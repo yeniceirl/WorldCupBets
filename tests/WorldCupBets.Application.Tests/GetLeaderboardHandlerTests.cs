@@ -336,12 +336,12 @@ public sealed class GetLeaderboardHandlerTests
 
     private sealed class StubTournamentPickRepository(params TournamentPick[] tournamentPicks) : ITournamentPickRepository
     {
-        public Task<bool> ExistsForUserAndCategoryAsync(int userId, TournamentPickCategory category, CancellationToken cancellationToken = default)
+        public Task<TournamentPick?> GetByUserAndCategoryAsync(int userId, TournamentPickCategory category, CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(tournamentPicks.Any(tournamentPick => tournamentPick.UserId == userId && tournamentPick.Category == category));
+            return Task.FromResult(tournamentPicks.SingleOrDefault(tournamentPick => tournamentPick.UserId == userId && tournamentPick.Category == category));
         }
 
-        public Task<TournamentPick?> GetByUserAndCategoryAsync(int userId, TournamentPickCategory category, CancellationToken cancellationToken = default)
+        public Task<TournamentPick?> GetTrackedByUserAndCategoryAsync(int userId, TournamentPickCategory category, CancellationToken cancellationToken = default)
         {
             return Task.FromResult(tournamentPicks.SingleOrDefault(tournamentPick => tournamentPick.UserId == userId && tournamentPick.Category == category));
         }

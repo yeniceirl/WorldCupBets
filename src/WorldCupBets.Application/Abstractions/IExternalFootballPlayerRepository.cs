@@ -7,6 +7,8 @@ public interface IExternalFootballPlayerRepository
     Task<IReadOnlyList<ExternalFootballPlayerDto>> SearchAsync(string providerName, string normalizedQuery, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyDictionary<string, string>> GetTeamIdMapAsync(string providerName, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyDictionary<string, string?>> GetPhotoUrlsByExternalIdsAsync(string providerName, IReadOnlyCollection<string> externalIds, CancellationToken cancellationToken = default);
 }
 
 public sealed record ExternalFootballPlayerDto(

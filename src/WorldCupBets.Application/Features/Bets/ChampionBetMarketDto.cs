@@ -6,4 +6,5 @@ public sealed record ChampionBetMarketDto(
     DateTime? BettingClosesAtUtc,
     bool IsBettingOpen,
     bool IsSettled,
-    string? CurrentUserChampionTeamName);
+    string? CurrentUserChampionTeamName,
+    string? CurrentUserChampionTeamFlagUrl);

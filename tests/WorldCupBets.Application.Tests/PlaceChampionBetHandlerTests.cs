@@ -102,9 +102,17 @@ public sealed class PlaceChampionBetHandlerTests
             new StubMatchRepository(["Argentina", "Japan"], new DateTime(2026, 6, 30, 18, 0, 0, DateTimeKind.Utc)),
             new StubTournamentPickRepository(TournamentPick.CreateChampion(user.Id, "Argentina", 50, DateTime.UtcNow)),
             new StubTournamentSettlementRepository(),
+            new StubExternalFootballDataRepository(new ExternalFootballSnapshot(
+                [new ExternalFootballTeamDto("ext-arg", "Argentina", "ARG", "AR", "A", "https://example.com/argentina-flag.png")],
+                [],
+                [],
+                [],
+                DateTime.UtcNow)),
+            new StubFootballDataProvider(),
             CancellationToken.None);
 
         Assert.Equal("Argentina", result.CurrentUserChampionTeamName);
+        Assert.Equal("https://example.com/argentina-flag.png", result.CurrentUserChampionTeamFlagUrl);
         Assert.Equal(["Argentina", "Japan"], result.TeamOptions);
     }
 
@@ -242,6 +250,29 @@ public sealed class PlaceChampionBetHandlerTests
         {
             tournamentPicks.Add(pick);
             return Task.CompletedTask;
+        }
+    }
+
+    private sealed class StubExternalFootballDataRepository(ExternalFootballSnapshot? snapshot) : IExternalFootballDataRepository
+    {
+        public Task ReplaceSnapshotAsync(string providerName, ExternalFootballSnapshot snapshot, CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<ExternalFootballSnapshot?> GetSnapshotAsync(string providerName, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(snapshot);
+        }
+    }
+
+    private sealed class StubFootballDataProvider : IFootballDataProvider
+    {
+        public string ProviderName => "worldcup26";
+
+        public Task<ExternalFootballSnapshot> GetSnapshotAsync(CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
         }
     }
 }

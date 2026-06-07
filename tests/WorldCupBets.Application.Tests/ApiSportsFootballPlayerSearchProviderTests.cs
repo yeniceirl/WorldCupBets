@@ -107,5 +107,10 @@ public sealed class ApiSportsFootballPlayerSearchProviderTests
         {
             throw new NotSupportedException();
         }
+
+        public Task<IReadOnlyDictionary<string, string?>> GetPhotoUrlsByExternalIdsAsync(string providerName, IReadOnlyCollection<string> externalIds, CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
     }
 }

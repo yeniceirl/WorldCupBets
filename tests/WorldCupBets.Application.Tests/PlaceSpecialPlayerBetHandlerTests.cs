@@ -205,6 +205,8 @@ public sealed class PlaceSpecialPlayerBetHandlerTests
             new StubTournamentPickRepository(
                 TournamentPick.CreatePlayer(user.Id, TournamentPickCategory.BestPlayer, "Lionel Messi", "34146370", 50, DateTime.UtcNow),
                 TournamentPick.CreatePlayer(user.Id, TournamentPickCategory.TopScorer, "Kylian Mbappe", null, 50, DateTime.UtcNow)),
+            new StubExternalFootballPlayerRepository(new Dictionary<string, string?> { ["34146370"] = "https://example.com/messi.png" }),
+            new StubPlayerSquadProvider(),
             CancellationToken.None);
 
         Assert.Collection(result.PlayerBets,
@@ -213,12 +215,14 @@ public sealed class PlaceSpecialPlayerBetHandlerTests
                 Assert.Equal("BestPlayer", bet.Category);
                 Assert.Equal("Lionel Messi", bet.PlayerName);
                 Assert.Equal("34146370", bet.ExternalPlayerId);
+                Assert.Equal("https://example.com/messi.png", bet.PlayerPhotoUrl);
             },
             bet =>
             {
                 Assert.Equal("TopScorer", bet.Category);
                 Assert.Equal("Kylian Mbappe", bet.PlayerName);
                 Assert.Null(bet.ExternalPlayerId);
+                Assert.Null(bet.PlayerPhotoUrl);
             });
     }
 
@@ -255,6 +259,48 @@ public sealed class PlaceSpecialPlayerBetHandlerTests
         {
             tournamentPicks.Add(pick);
             return Task.CompletedTask;
+        }
+    }
+
+    private sealed class StubExternalFootballPlayerRepository(IReadOnlyDictionary<string, string?> photoUrlsByExternalId) : IExternalFootballPlayerRepository
+    {
+        public Task ReplacePlayersAsync(string providerName, IReadOnlyList<ExternalFootballPlayerDto> players, DateTime syncedAtUtc, CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<IReadOnlyList<ExternalFootballPlayerDto>> SearchAsync(string providerName, string normalizedQuery, CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<IReadOnlyDictionary<string, string>> GetTeamIdMapAsync(string providerName, CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<IReadOnlyDictionary<string, string?>> GetPhotoUrlsByExternalIdsAsync(string providerName, IReadOnlyCollection<string> externalIds, CancellationToken cancellationToken = default)
+        {
+            var matches = photoUrlsByExternalId
+                .Where(entry => externalIds.Contains(entry.Key, StringComparer.OrdinalIgnoreCase))
+                .ToDictionary(entry => entry.Key, entry => entry.Value, StringComparer.OrdinalIgnoreCase);
+
+            return Task.FromResult<IReadOnlyDictionary<string, string?>>(matches);
+        }
+    }
+
+    private sealed class StubPlayerSquadProvider : IPlayerSquadProvider
+    {
+        public string ProviderName => "api-sports";
+
+        public Task<string?> ResolveTeamIdAsync(string teamName, CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<IReadOnlyList<PlayerSquadMemberDto>> GetSquadAsync(string teamExternalId, CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
         }
     }
 }

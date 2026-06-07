@@ -74,7 +74,12 @@ interface PlayerBetDefinition {
 							<p class="mt-2 text-2xl font-black text-slate-950 dark:text-white">{{ championMarket()!.currentUserChampionTeamName ?? "Pending" }}</p>
 							<p class="mt-2 text-sm text-slate-600 dark:text-slate-300">Stake: {{ formatCopaCoin(championMarket()!.stakeAmountCc) }} CC</p>
 							@if (championMarket()!.currentUserChampionTeamName) {
-								<p class="mt-4 inline-flex rounded-full bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700" data-testid="champion-current-pick">Selected</p>
+								<div class="mt-4 flex items-center justify-between gap-3">
+									<p class="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700" data-testid="champion-current-pick">Selected</p>
+									@if (championMarket()!.currentUserChampionTeamFlagUrl) {
+										<img class="h-10 w-14 rounded object-cover" [src]="championMarket()!.currentUserChampionTeamFlagUrl" [alt]="championMarket()!.currentUserChampionTeamName!" />
+									}
+								</div>
 							} @else {
 								<div class="mt-4 grid gap-3">
 									<select #championTeamSelect class="min-w-0 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-white" (change)="selectedChampionTeamName.set(championTeamSelect.value)" data-testid="champion-team-select">
@@ -94,9 +99,16 @@ interface PlayerBetDefinition {
 							<article class="rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm dark:border-slate-700 dark:bg-slate-950/80" [attr.data-testid]="'special-player-bet-' + definition.category">
 								<p class="text-xs font-bold uppercase tracking-[0.2em] text-sky-700 dark:text-sky-300">{{ definition.label }}</p>
 								@if (getSpecialPlayerBet(definition.category); as existingBet) {
-									<p class="mt-2 text-2xl font-black text-slate-950 dark:text-white">{{ existingBet.playerName }}</p>
-									<p class="mt-2 text-sm text-slate-600 dark:text-slate-300">Stake: {{ formatCopaCoin(existingBet.stakeAmountCc) }} CC</p>
-									<p class="mt-4 inline-flex rounded-full bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700">Selected</p>
+									<div class="mt-2 flex items-start justify-between gap-3">
+										<div class="min-w-0">
+											<p class="text-2xl font-black text-slate-950 dark:text-white">{{ existingBet.playerName }}</p>
+											<p class="mt-2 text-sm text-slate-600 dark:text-slate-300">Stake: {{ formatCopaCoin(existingBet.stakeAmountCc) }} CC</p>
+											<p class="mt-4 inline-flex rounded-full bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700">Selected</p>
+										</div>
+										@if (existingBet.playerPhotoUrl) {
+											<img class="h-16 w-16 shrink-0 rounded-full object-cover" [src]="existingBet.playerPhotoUrl" [alt]="existingBet.playerName" />
+										}
+									</div>
 								} @else {
 									<p class="mt-2 text-sm text-slate-600 dark:text-slate-300">{{ definition.description }}</p>
 									<div class="mt-4 grid gap-3">
@@ -330,7 +342,7 @@ export class BetsPageComponent {
 					...this.specialMarket()!,
 					playerBets: [
 						...this.specialMarket()!.playerBets,
-						{ category: result.category, playerName: result.playerName, externalPlayerId: result.externalPlayerId, stakeAmountCc: result.stakeAmountCc, placedAtUtc: result.placedAtUtc },
+						{ category: result.category, playerName: result.playerName, externalPlayerId: result.externalPlayerId, playerPhotoUrl: selectedPlayer.thumbnailUrl, stakeAmountCc: result.stakeAmountCc, placedAtUtc: result.placedAtUtc },
 					],
 				});
 				this.successMessage.set(`${this.getPlayerBetLabel(category)} bet placed for ${result.playerName}. Remaining balance: ${formatCopaCoin(result.remainingBalanceCc)} CC.`);

@@ -1,3 +1,4 @@
+using WorldCupBets.Application.Abstractions;
 using WorldCupBets.Domain.Repositories;
 
 namespace WorldCupBets.Application.Features.Bets;
@@ -9,6 +10,8 @@ public sealed class GetChampionBetMarketHandler
         IMatchRepository matchRepository,
         ITournamentPickRepository tournamentPickRepository,
         ITournamentSettlementRepository tournamentSettlementRepository,
+        IExternalFootballDataRepository externalFootballDataRepository,
+        IFootballDataProvider footballDataProvider,
         CancellationToken cancellationToken)
     {
         var closesAtUtc = await matchRepository.GetChampionBettingClosesAtUtcAsync(cancellationToken);
@@ -17,12 +20,22 @@ public sealed class GetChampionBetMarketHandler
         var isSettled = await tournamentSettlementRepository.IsChampionSettledAsync(cancellationToken);
         var nowUtc = DateTime.UtcNow;
 
+        string? championTeamFlagUrl = null;
+        if (currentUserBet is not null)
+        {
+            var snapshot = await externalFootballDataRepository.GetSnapshotAsync(footballDataProvider.ProviderName, cancellationToken);
+            championTeamFlagUrl = snapshot?.Teams
+                .FirstOrDefault(team => string.Equals(team.NameEn, currentUserBet.SelectedText, StringComparison.OrdinalIgnoreCase))
+                ?.FlagUrl;
+        }
+
         return new ChampionBetMarketDto(
             teamOptions,
             PlaceChampionBetHandler.ChampionBetStakeAmountCc,
             closesAtUtc,
             closesAtUtc is null || nowUtc < closesAtUtc.Value,
             isSettled,
-            currentUserBet?.SelectedText);
+            currentUserBet?.SelectedText,
+            championTeamFlagUrl);
     }
 }

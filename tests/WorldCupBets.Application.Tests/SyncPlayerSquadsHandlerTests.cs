@@ -192,5 +192,10 @@ public sealed class SyncPlayerSquadsHandlerTests
         {
             return Task.FromResult<IReadOnlyDictionary<string, string>>(new Dictionary<string, string>(TeamIdMap, StringComparer.OrdinalIgnoreCase));
         }
+
+        public Task<IReadOnlyDictionary<string, string?>> GetPhotoUrlsByExternalIdsAsync(string providerName, IReadOnlyCollection<string> externalIds, CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
     }
 }

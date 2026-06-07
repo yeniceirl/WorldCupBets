@@ -5,4 +5,5 @@ public sealed record SpecialPlayerBetDto(
     string PlayerName,
     string? ExternalPlayerId,
     decimal StakeAmountCc,
-    DateTime PlacedAtUtc);
+    DateTime PlacedAtUtc,
+    string? PlayerPhotoUrl);

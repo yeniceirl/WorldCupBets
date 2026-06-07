@@ -52,6 +52,7 @@ export interface ChampionBetMarket {
 	isBettingOpen: boolean;
 	isSettled: boolean;
 	currentUserChampionTeamName: string | null;
+	currentUserChampionTeamFlagUrl: string | null;
 }
 
 export interface PlaceChampionBetRequest {
@@ -78,6 +79,7 @@ export interface SpecialPlayerBet {
 	category: SpecialPlayerBetCategory;
 	playerName: string;
 	externalPlayerId: string | null;
+	playerPhotoUrl: string | null;
 	stakeAmountCc: number;
 	placedAtUtc: string;
 }

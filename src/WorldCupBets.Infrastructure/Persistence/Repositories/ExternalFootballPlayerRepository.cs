@@ -69,4 +69,20 @@ public sealed class ExternalFootballPlayerRepository(AppDbContext dbContext) : I
 
         return map;
     }
+
+    public async Task<IReadOnlyDictionary<string, string?>> GetPhotoUrlsByExternalIdsAsync(string providerName, IReadOnlyCollection<string> externalIds, CancellationToken cancellationToken = default)
+    {
+        if (externalIds.Count == 0)
+        {
+            return new Dictionary<string, string?>();
+        }
+
+        var rows = await dbContext.ExternalFootballPlayers
+            .AsNoTracking()
+            .Where(player => player.ProviderName == providerName && externalIds.Contains(player.ExternalId))
+            .Select(player => new { player.ExternalId, player.PhotoUrl })
+            .ToArrayAsync(cancellationToken);
+
+        return rows.ToDictionary(row => row.ExternalId, row => row.PhotoUrl, StringComparer.OrdinalIgnoreCase);
+    }
 }

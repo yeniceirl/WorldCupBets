@@ -19,6 +19,7 @@ import type {
 	SettleChampionResult,
 	SpecialBetMarket,
 	SyncFootballDataResult,
+	SyncPlayerSquadsResult,
 	ImportGroupStageFixturesResult,
 } from "./matches.models";
 
@@ -74,6 +75,10 @@ export class MatchesService {
 
 	syncFootballData(): Observable<SyncFootballDataResult> {
 		return this.httpClient.post<SyncFootballDataResult>("/api/football-data/sync", null);
+	}
+
+	syncPlayerSquads(): Observable<SyncPlayerSquadsResult> {
+		return this.httpClient.post<SyncPlayerSquadsResult>("/api/football-data/players/sync", null);
 	}
 
 	importGroupStageFixtures(): Observable<ImportGroupStageFixturesResult> {

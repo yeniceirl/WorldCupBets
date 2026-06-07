@@ -90,12 +90,12 @@ test("my bets can place champion, best player, and top scorer picks", async ({ p
 	await page.getByTestId("place-champion-bet-button").click();
 	await expect(page.getByTestId("champion-market-card")).toContainText("Argentina");
 
-	await page.getByPlaceholder("Type at least 3 characters").first().fill("Lio");
+	await page.getByTestId("special-player-search-BestPlayer").fill("Lio");
 	await page.getByRole("button", { name: /Lionel Messi/ }).click();
 	await page.getByTestId("place-special-player-bet-BestPlayer").click();
 	await expect(page.getByTestId("special-player-bet-BestPlayer")).toContainText("Lionel Messi");
 
-	await page.getByPlaceholder("Type at least 3 characters").first().fill("Kyl");
+	await page.getByTestId("special-player-search-TopScorer").fill("Kyl");
 	await page.getByRole("button", { name: /Kylian Mbappe/ }).click();
 	await page.getByTestId("place-special-player-bet-TopScorer").click();
 	await expect(page.getByTestId("special-player-bet-TopScorer")).toContainText("Kylian Mbappe");
@@ -109,7 +109,7 @@ test("my bets allows changing an existing champion and player pick without re-ch
 	await page.getByTestId("place-champion-bet-button").click();
 	await expect(page.getByTestId("champion-market-card")).toContainText("Argentina");
 
-	await page.getByPlaceholder("Type at least 3 characters").first().fill("Lio");
+	await page.getByTestId("special-player-search-BestPlayer").fill("Lio");
 	await page.getByRole("button", { name: /Lionel Messi/ }).click();
 	await page.getByTestId("place-special-player-bet-BestPlayer").click();
 	await expect(page.getByTestId("special-player-bet-BestPlayer")).toContainText("Lionel Messi");
@@ -117,15 +117,15 @@ test("my bets allows changing an existing champion and player pick without re-ch
 	await expect(page.getByTestId("place-champion-bet-button")).toHaveText("Update champion bet");
 	await page.getByTestId("champion-team-select").selectOption("Japan");
 	await page.getByTestId("place-champion-bet-button").click();
-	await expect(page.getByTestId("champion-market-card")).toContainText("Japan");
-	await expect(page.getByTestId("champion-market-card")).not.toContainText("Argentina");
+	await expect(page.getByTestId("champion-team-select")).toHaveValue("Japan");
+	await expect(page.getByTestId("champion-market-card").locator(".text-2xl")).toHaveText("Japan");
 
 	await expect(page.getByTestId("place-special-player-bet-BestPlayer")).toHaveText(/Update best player bet/i);
-	await page.getByPlaceholder("Type at least 3 characters").first().fill("Kyl");
+	await page.getByTestId("special-player-search-BestPlayer").fill("Kyl");
 	await page.getByRole("button", { name: /Kylian Mbappe/ }).click();
 	await page.getByTestId("place-special-player-bet-BestPlayer").click();
 	await expect(page.getByTestId("special-player-bet-BestPlayer")).toContainText("Kylian Mbappe");
-	await expect(page.getByTestId("special-player-bet-BestPlayer")).not.toContainText("Lionel Messi");
+	await expect(page.getByTestId("special-player-bet-BestPlayer").locator(".text-2xl")).toHaveText("Kylian Mbappe");
 
 	await expect(page.getByText("3/3")).toBeVisible();
 });

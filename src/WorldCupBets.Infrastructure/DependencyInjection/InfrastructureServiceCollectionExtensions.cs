@@ -52,8 +52,25 @@ public static class InfrastructureServiceCollectionExtensions
             Provider = section["Provider"] ?? "worldcup26",
             BaseUrl = section["BaseUrl"] ?? "https://worldcup26.ir"
         };
+        var apiSportsSection = configuration.GetSection("ApiSportsFootball");
+        var includedTeamNames = apiSportsSection.GetSection("IncludedTeamNames")
+            .GetChildren()
+            .Select(section => section.Value)
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value!)
+            .ToArray();
+        var apiSportsOptions = new ApiSportsFootballOptions
+        {
+            ApiKey = apiSportsSection["ApiKey"] ?? string.Empty,
+            BaseUrl = apiSportsSection["BaseUrl"] ?? "https://v3.football.api-sports.io",
+            SquadCacheHours = int.TryParse(apiSportsSection["SquadCacheHours"], out var squadCacheHours) ? squadCacheHours : 24,
+            IncludedTeamNames = includedTeamNames.Length > 0
+                ? new HashSet<string>(includedTeamNames, StringComparer.OrdinalIgnoreCase)
+                : new HashSet<string>(ApiSportsFootballOptions.DefaultIncludedTeamNames, StringComparer.OrdinalIgnoreCase),
+        };
 
         services.AddSingleton(options);
+        services.AddSingleton(apiSportsOptions);
         services.AddSingleton<IFootballDataProvider>(serviceProvider =>
         {
             var httpClient = new HttpClient
@@ -63,10 +80,20 @@ public static class InfrastructureServiceCollectionExtensions
 
             return new WorldCup26FootballDataProvider(httpClient, serviceProvider.GetRequiredService<ExternalFootballDataOptions>());
         });
-        services.AddSingleton<IPlayerSearchProvider>(_ => new TheSportsDbPlayerSearchProvider(new HttpClient
+        services.AddScoped<IPlayerSearchProvider>(serviceProvider =>
         {
-            BaseAddress = new Uri("https://www.thesportsdb.com")
-        }));
+            if (string.IsNullOrWhiteSpace(apiSportsOptions.ApiKey))
+            {
+                return new EmptyPlayerSearchProvider();
+            }
+
+            return new ApiSportsFootballPlayerSearchProvider(
+                new HttpClient { BaseAddress = new Uri(apiSportsOptions.BaseUrl) },
+                apiSportsOptions,
+                serviceProvider.GetRequiredService<ExternalFootballDataOptions>(),
+                serviceProvider.GetRequiredService<IExternalFootballDataRepository>(),
+                serviceProvider.GetRequiredService<HybridCache>());
+        });
 
         return services;
     }

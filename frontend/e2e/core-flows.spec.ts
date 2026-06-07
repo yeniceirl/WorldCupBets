@@ -90,11 +90,13 @@ test("my bets can place champion, best player, and top scorer picks", async ({ p
 	await page.getByTestId("place-champion-bet-button").click();
 	await expect(page.getByTestId("champion-market-card")).toContainText("Argentina");
 
-	await page.getByPlaceholder("Type at least 3 characters").first().fill("Lionel Messi");
+	await page.getByPlaceholder("Type at least 3 characters").first().fill("Lio");
+	await page.getByRole("button", { name: /Lionel Messi/ }).click();
 	await page.getByTestId("place-special-player-bet-BestPlayer").click();
 	await expect(page.getByTestId("special-player-bet-BestPlayer")).toContainText("Lionel Messi");
 
-	await page.getByPlaceholder("Type at least 3 characters").first().fill("Kylian Mbappe");
+	await page.getByPlaceholder("Type at least 3 characters").first().fill("Kyl");
+	await page.getByRole("button", { name: /Kylian Mbappe/ }).click();
 	await page.getByTestId("place-special-player-bet-TopScorer").click();
 	await expect(page.getByTestId("special-player-bet-TopScorer")).toContainText("Kylian Mbappe");
 	await expect(page.getByText("3/3")).toBeVisible();

@@ -100,13 +100,23 @@ interface PlayerBetDefinition {
 								} @else {
 									<p class="mt-2 text-sm text-slate-600 dark:text-slate-300">{{ definition.description }}</p>
 									<div class="mt-4 grid gap-3">
-										<input class="min-w-0 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-white" [attr.list]="'player-options-' + definition.category" [placeholder]="definition.placeholder" [value]="getSelectedPlayerName(definition.category)" (input)="onPlayerInput(definition.category, $any($event.target).value)" />
-										<datalist [id]="'player-options-' + definition.category">
-											@for (player of getPlayerOptions(definition.category); track player.externalId) {
-												<option [value]="player.name">{{ player.teamName ?? player.nationality ?? "Soccer" }}</option>
-											}
-										</datalist>
-						<button type="button" class="rounded-xl border border-sky-600 bg-sky-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60" (click)="placeSpecialPlayerBet(definition.category)" [disabled]="getSelectedPlayerName(definition.category).trim().length < 3 || !specialMarket()!.isBettingOpen || submittingSpecialCategory() === definition.category" [attr.data-testid]="'place-special-player-bet-' + definition.category">
+										<input class="min-w-0 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-white" [placeholder]="definition.placeholder" [value]="getSelectedPlayerName(definition.category)" (input)="onPlayerInput(definition.category, $any($event.target).value)" [attr.data-testid]="'special-player-search-' + definition.category" />
+										@if (getPlayerOptions(definition.category).length > 0) {
+											<div class="grid gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-900/70" [attr.data-testid]="'special-player-options-' + definition.category">
+												@for (player of getPlayerOptions(definition.category); track player.externalId) {
+													<button type="button" class="flex items-center gap-3 rounded-xl border px-3 py-2 text-left transition hover:border-sky-300 hover:bg-white dark:hover:border-sky-700 dark:hover:bg-slate-950" [class]="getPlayerOptionClasses(definition.category, player)" (click)="selectPlayer(definition.category, player)">
+														@if (player.thumbnailUrl) {
+															<img class="h-10 w-10 rounded-full object-cover" [src]="player.thumbnailUrl" [alt]="player.name" />
+														}
+														<span class="min-w-0">
+															<span class="block truncate text-sm font-bold text-slate-950 dark:text-white">{{ player.name }}</span>
+															<span class="block truncate text-xs text-slate-600 dark:text-slate-300">{{ getPlayerOptionDetail(player) }}</span>
+														</span>
+													</button>
+												}
+											</div>
+										}
+										<button type="button" class="rounded-xl border border-sky-600 bg-sky-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60" (click)="placeSpecialPlayerBet(definition.category)" [disabled]="!getSelectedPlayer(definition.category) || !specialMarket()!.isBettingOpen || submittingSpecialCategory() === definition.category" [attr.data-testid]="'place-special-player-bet-' + definition.category">
 											Place {{ definition.label.toLowerCase() }} bet
 										</button>
 									</div>
@@ -184,6 +194,8 @@ export class BetsPageComponent {
 	readonly selectedChampionTeamName = signal("");
 	readonly selectedBestPlayerName = signal("");
 	readonly selectedTopScorerName = signal("");
+	readonly selectedBestPlayerExternalId = signal<string | null>(null);
+	readonly selectedTopScorerExternalId = signal<string | null>(null);
 	readonly bestPlayerOptions = signal<ReadonlyArray<PlayerSearchResult>>([]);
 	readonly topScorerOptions = signal<ReadonlyArray<PlayerSearchResult>>([]);
 	readonly isSubmittingChampionBet = signal(false);
@@ -225,12 +237,25 @@ export class BetsPageComponent {
 	onPlayerInput(category: SpecialPlayerBetCategory, value: string): void {
 		if (category === "BestPlayer") {
 			this.selectedBestPlayerName.set(value);
+			this.selectedBestPlayerExternalId.set(null);
 			this.bestPlayerSearch.next(value);
 			return;
 		}
 
 		this.selectedTopScorerName.set(value);
+		this.selectedTopScorerExternalId.set(null);
 		this.topScorerSearch.next(value);
+	}
+
+	selectPlayer(category: SpecialPlayerBetCategory, player: PlayerSearchResult): void {
+		if (category === "BestPlayer") {
+			this.selectedBestPlayerName.set(player.name);
+			this.selectedBestPlayerExternalId.set(player.externalId);
+			return;
+		}
+
+		this.selectedTopScorerName.set(player.name);
+		this.selectedTopScorerExternalId.set(player.externalId);
 	}
 
 	getSelectedPlayerName(category: SpecialPlayerBetCategory): string {
@@ -239,6 +264,21 @@ export class BetsPageComponent {
 
 	getPlayerOptions(category: SpecialPlayerBetCategory): ReadonlyArray<PlayerSearchResult> {
 		return category === "BestPlayer" ? this.bestPlayerOptions() : this.topScorerOptions();
+	}
+
+	getSelectedPlayer(category: SpecialPlayerBetCategory): PlayerSearchResult | undefined {
+		const externalId = category === "BestPlayer" ? this.selectedBestPlayerExternalId() : this.selectedTopScorerExternalId();
+		return this.getPlayerOptions(category).find((player) => player.externalId === externalId);
+	}
+
+	getPlayerOptionClasses(category: SpecialPlayerBetCategory, player: PlayerSearchResult): string {
+		return this.getSelectedPlayer(category)?.externalId === player.externalId
+			? "border-sky-400 bg-white ring-2 ring-sky-200 dark:border-sky-600 dark:bg-slate-950 dark:ring-sky-900"
+			: "border-transparent bg-transparent";
+	}
+
+	getPlayerOptionDetail(player: PlayerSearchResult): string {
+		return [player.teamName, player.nationality, player.position].filter(Boolean).join(" · ") || "Soccer player";
 	}
 
 	getSpecialPlayerBet(category: SpecialPlayerBetCategory): SpecialPlayerBet | undefined {
@@ -275,12 +315,16 @@ export class BetsPageComponent {
 			return;
 		}
 
-		const selectedPlayer = this.getPlayerOptions(category).find((player) => player.name.toLowerCase() === playerName.toLowerCase());
+		const selectedPlayer = this.getSelectedPlayer(category);
+		if (!selectedPlayer) {
+			return;
+		}
+
 		this.errorMessage.set("");
 		this.successMessage.set("");
 		this.submittingSpecialCategory.set(category);
 
-		this.matchesService.placeSpecialPlayerBet({ category, playerName, externalPlayerId: selectedPlayer?.externalId ?? null }).subscribe({
+		this.matchesService.placeSpecialPlayerBet({ category, playerName, externalPlayerId: selectedPlayer.externalId }).subscribe({
 			next: (result) => {
 				this.specialMarket.set({
 					...this.specialMarket()!,
@@ -379,11 +423,13 @@ export class BetsPageComponent {
 	private clearSelectedPlayer(category: SpecialPlayerBetCategory): void {
 		if (category === "BestPlayer") {
 			this.selectedBestPlayerName.set("");
+			this.selectedBestPlayerExternalId.set(null);
 			this.bestPlayerOptions.set([]);
 			return;
 		}
 
 		this.selectedTopScorerName.set("");
+		this.selectedTopScorerExternalId.set(null);
 		this.topScorerOptions.set([]);
 	}
 

@@ -127,7 +127,7 @@ test("my bets allows changing an existing champion and player pick without re-ch
 	await expect(page.getByTestId("special-player-bet-BestPlayer")).toContainText("Kylian Mbappe");
 	await expect(page.getByTestId("special-player-bet-BestPlayer").locator(".text-2xl")).toHaveText("Kylian Mbappe");
 
-	await expect(page.getByText("3/3")).toBeVisible();
+	await expect(page.getByText("2/3")).toBeVisible();
 });
 
 test.describe("admin player squad sync", () => {

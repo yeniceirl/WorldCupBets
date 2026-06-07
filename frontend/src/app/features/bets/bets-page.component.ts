@@ -71,16 +71,19 @@ interface PlayerBetDefinition {
 					<div class="grid gap-4 lg:grid-cols-3">
 						<article class="rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm dark:border-slate-700 dark:bg-slate-950/80" data-testid="champion-market-card">
 							<p class="text-xs font-bold uppercase tracking-[0.2em] text-sky-700 dark:text-sky-300">Champion bet</p>
-							<p class="mt-2 text-2xl font-black text-slate-950 dark:text-white">{{ championMarket()!.currentUserChampionTeamName ?? "Pending" }}</p>
-							<p class="mt-2 text-sm text-slate-600 dark:text-slate-300">Stake: {{ formatCopaCoin(championMarket()!.stakeAmountCc) }} CC</p>
-							@if (championMarket()!.currentUserChampionTeamName) {
-								<div class="mt-4 flex items-center justify-between gap-3">
-									<p class="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700" data-testid="champion-current-pick">Selected</p>
-									@if (championMarket()!.currentUserChampionTeamFlagUrl) {
-										<img class="h-10 w-14 rounded object-cover" [src]="championMarket()!.currentUserChampionTeamFlagUrl" [alt]="championMarket()!.currentUserChampionTeamName!" />
+							<div class="mt-2 flex items-start justify-between gap-3">
+								<div class="min-w-0">
+									<p class="text-2xl font-black text-slate-950 dark:text-white">{{ championMarket()!.currentUserChampionTeamName ?? "Pending" }}</p>
+									<p class="mt-2 text-sm text-slate-600 dark:text-slate-300">Stake: {{ formatCopaCoin(championMarket()!.stakeAmountCc) }} CC</p>
+									@if (championMarket()!.currentUserChampionTeamName) {
+										<p class="mt-4 inline-flex rounded-full bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700" data-testid="champion-current-pick">Selected</p>
 									}
 								</div>
-							} @else {
+								@if (championMarket()!.currentUserChampionTeamFlagUrl) {
+									<img class="h-16 w-16 shrink-0 rounded-full object-cover" [src]="championMarket()!.currentUserChampionTeamFlagUrl" [alt]="championMarket()!.currentUserChampionTeamName!" />
+								}
+							</div>
+							@if (!championMarket()!.currentUserChampionTeamName) {
 								<div class="mt-4 grid gap-3">
 									<select #championTeamSelect class="min-w-0 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-white" (change)="selectedChampionTeamName.set(championTeamSelect.value)" data-testid="champion-team-select">
 										<option value="">Select a team</option>

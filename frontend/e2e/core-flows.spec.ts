@@ -102,6 +102,47 @@ test("my bets can place champion, best player, and top scorer picks", async ({ p
 	await expect(page.getByText("3/3")).toBeVisible();
 });
 
+test.describe("admin player squad sync", () => {
+	test.beforeEach(async ({ page }) => {
+		await page.addInitScript(() => {
+			localStorage.setItem("worldcupbets.auth.accessToken", "test-admin-token");
+			localStorage.setItem("worldcupbets.auth.user", JSON.stringify({
+				id: 2,
+				email: "admin@example.com",
+				displayName: "Ada Admin",
+				roles: ["Admin"],
+			}));
+		});
+
+		await mockApi(page);
+		await page.route("**/api/football-data/players/sync", async (route) => route.fulfill({
+			json: {
+				providerName: "api-sports",
+				notConfigured: false,
+				teamsProcessedCount: 2,
+				playersIndexedCount: 46,
+				errors: [{ teamName: "Japan", message: "team not found", rateLimited: false }],
+				syncedAtUtc: "2026-06-07T12:00:00Z",
+			},
+		}));
+	});
+
+	test("admin can trigger player squad sync and see results persist across reload", async ({ page }) => {
+		await page.goto("/admin");
+
+		await expect(page.getByRole("heading", { name: "Sync player squads" })).toBeVisible();
+		await page.getByTestId("admin-sync-players").click();
+
+		await expect(page.getByTestId("success-message")).toContainText("Synced 46 players across 2 teams from api-sports");
+		await expect(page.getByTestId("success-message")).toContainText("Japan (team not found)");
+		await expect(page.getByTestId("admin-players-last-synced")).toContainText("Last synced");
+
+		await page.reload();
+
+		await expect(page.getByTestId("admin-players-last-synced")).toContainText("Last synced");
+	});
+});
+
 async function mockApi(page: Page): Promise<void> {
 	await page.route("**/api/me/summary", async (route) => route.fulfill({ json: userSummary }));
 	await page.route("**/api/bets/champion", async (route) => {

@@ -31,11 +31,11 @@ import type { CreateUserInvitationRequest } from "./admin.models";
 			}
 
 			@if (successMessage()) {
-				<section class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-200">{{ successMessage() }}</section>
+				<section class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-200" data-testid="success-message">{{ successMessage() }}</section>
 			}
 
 			@if (errorMessage()) {
-				<section class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-200">{{ errorMessage() }}</section>
+				<section class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-200" data-testid="error-message">{{ errorMessage() }}</section>
 			}
 
 			<section class="rounded-2xl border border-sky-200 bg-white/90 p-5 shadow-sm dark:border-slate-700 dark:bg-slate-950/80">
@@ -49,6 +49,20 @@ import type { CreateUserInvitationRequest } from "./admin.models";
 						<button type="button" class="rounded-xl border border-sky-600 bg-sky-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60" [disabled]="!isAdmin() || isSyncingFootballData()" (click)="syncFootballData()" data-testid="admin-sync-provider">{{ isSyncingFootballData() ? "Syncing..." : "Sync provider" }}</button>
 						<button type="button" class="rounded-xl border border-emerald-600 bg-emerald-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60" [disabled]="!isAdmin() || isImportingFixtures()" (click)="importGroupStageFixtures()" data-testid="admin-import-fixtures">{{ isImportingFixtures() ? "Importing..." : "Import group fixtures" }}</button>
 					</div>
+				</div>
+			</section>
+
+			<section class="rounded-2xl border border-violet-200 bg-white/90 p-5 shadow-sm dark:border-violet-900/70 dark:bg-slate-950/80">
+				<div class="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
+					<div>
+						<p class="text-xs font-bold uppercase tracking-[0.2em] text-violet-700 dark:text-violet-300">Player search index</p>
+						<h2 class="mt-2 text-2xl font-black text-slate-950 dark:text-white">Sync player squads</h2>
+						<p class="mt-2 max-w-3xl text-sm leading-6 text-slate-600 dark:text-slate-300">Fetches squads for the configured national teams from API-Sports and replaces the persisted player search index. This calls the external API directly, so only run it when needed.</p>
+						@if (lastPlayerSyncAtUtc()) {
+							<p class="mt-3 text-xs font-semibold uppercase tracking-[0.18em] text-violet-700 dark:text-violet-300" data-testid="admin-players-last-synced">Last synced {{ lastPlayerSyncAtUtc() | date: "medium" : "UTC" }} UTC</p>
+						}
+					</div>
+					<button type="button" class="rounded-xl border border-violet-600 bg-violet-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60" [disabled]="!isAdmin() || isSyncingPlayers()" (click)="syncPlayerSquads()" data-testid="admin-sync-players">{{ isSyncingPlayers() ? "Syncing..." : "Sync players" }}</button>
 				</div>
 			</section>
 
@@ -142,6 +156,8 @@ export class AdminPageComponent {
 	readonly submittingMatchId = signal<number | null>(null);
 	readonly isSettlingChampion = signal(false);
 	readonly isSyncingFootballData = signal(false);
+	readonly isSyncingPlayers = signal(false);
+	readonly lastPlayerSyncAtUtc = signal<string | null>(this.adminService.getLastPlayerSyncAtUtc());
 	readonly isImportingFixtures = signal(false);
 	readonly isCreatingInvitation = signal(false);
 	readonly settlementQueue = computed(() => this.matches().filter((match) => !match.isBettingOpen && !match.isSettled));
@@ -234,6 +250,33 @@ export class AdminPageComponent {
 			error: (error: { error?: { error?: string; detail?: string } }) => {
 				this.errorMessage.set(error.error?.error ?? error.error?.detail ?? "Unable to sync external football data.");
 				this.isSyncingFootballData.set(false);
+			},
+		});
+	}
+
+	syncPlayerSquads(): void {
+		this.errorMessage.set("");
+		this.successMessage.set("");
+		this.isSyncingPlayers.set(true);
+		this.matchesService.syncPlayerSquads().subscribe({
+			next: (result) => {
+				if (result.notConfigured) {
+					this.successMessage.set("Player squad sync is not configured. Set ApiSportsFootball__ApiKey to enable it.");
+					this.isSyncingPlayers.set(false);
+					return;
+				}
+
+				const errorSummary = result.errors.length > 0
+					? ` ${result.errors.length} team(s) reported errors: ${result.errors.map((error) => `${error.teamName} (${error.rateLimited ? "rate limited" : error.message})`).join(", ")}.`
+					: "";
+				this.successMessage.set(`Synced ${result.playersIndexedCount} players across ${result.teamsProcessedCount} teams from ${result.providerName}.${errorSummary}`);
+				this.lastPlayerSyncAtUtc.set(result.syncedAtUtc);
+				this.adminService.rememberLastPlayerSyncAtUtc(result.syncedAtUtc);
+				this.isSyncingPlayers.set(false);
+			},
+			error: (error: { error?: { error?: string; detail?: string } }) => {
+				this.errorMessage.set(error.error?.error ?? error.error?.detail ?? "Unable to sync player squads.");
+				this.isSyncingPlayers.set(false);
 			},
 		});
 	}

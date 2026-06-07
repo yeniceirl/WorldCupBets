@@ -200,6 +200,21 @@ export interface SyncFootballDataResult {
 	syncedAtUtc: string;
 }
 
+export interface PlayerSquadSyncError {
+	teamName: string;
+	message: string;
+	rateLimited: boolean;
+}
+
+export interface SyncPlayerSquadsResult {
+	providerName: string;
+	notConfigured: boolean;
+	teamsProcessedCount: number;
+	playersIndexedCount: number;
+	errors: ReadonlyArray<PlayerSquadSyncError>;
+	syncedAtUtc: string;
+}
+
 export interface ImportGroupStageFixturesResult {
 	providerName: string;
 	importedCount: number;

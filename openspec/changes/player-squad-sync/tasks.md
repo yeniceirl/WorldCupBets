@@ -47,14 +47,14 @@ Test command (frontend): `ng test` / Playwright via `npx playwright test` (per C
 - [x] 2.7 Write handler unit tests (fake provider + in-memory repo): 429 abort mid-sync, not-configured no-op, zero-teams clean result, team-id cache reuse (skip resolve when persisted TeamExternalId exists), per-team non-429 error continues (Spec scenarios: "Successful sync replaces persisted rows", "Non-admin cannot trigger sync", "Per-team failure...without aborting", "First 429 stops further processing", "Non-429 errors do not trigger abort", "Missing API key produces a clear no-op result", "Empty included-team list reports zero processed teams")
 - [x] 2.8 Write endpoint integration test: `POST /players/sync` rejects non-admin callers and never invokes the provider (Spec scenario: "Non-admin cannot trigger sync") — covered via `EndpointAuthorizationMetadataTests` (asserts `/api/football-data/players/sync` requires the `Admin` policy and metadata-only mapping never executes handlers)
 
-## Phase 3: Search Rewrite & Frontend Integration (Spec: Persisted search §req3, Admin feedback §req4)
+## Phase 3: Search Rewrite & Frontend Integration (Spec: Persisted search §req3, Admin feedback §req4) — COMPLETE
 
-- [ ] 3.1 Rewrite `ApiSportsFootballPlayerSearchProvider.SearchAsync` to drop HybridCache/index-build/team-resolution entirely and delegate to `IExternalFootballPlayerRepository.SearchAsync`, keeping existing starts-with-word/alphabetical/take-10 ranking in C#
-- [ ] 3.2 Write/update search-provider unit tests verifying no HTTP calls occur and ranking matches prior behavior on persisted-row fixtures (Spec scenarios: "Search reads from persisted rows", "Search before any sync has run")
-- [ ] 3.3 Add `syncPlayerSquads()` to `frontend/src/app/.../matches.service.ts`; add `SyncPlayerSquadsResult` and `PlayerSquadSyncError` to `matches.models.ts`
-- [ ] 3.4 Update `admin-page.component.ts`: add sync-players button, `isSyncingPlayers` signal (client-side disable-while-syncing guard), and result/error/last-synced display mirroring `syncFootballData()` (Spec scenarios: "Admin sees success summary after sync", "Last-synced timestamp persists across reloads")
-- [ ] 3.5 Write/update frontend component test or Playwright e2e covering: trigger sync, see TeamsProcessedCount/PlayersIndexedCount/Errors/SyncedAtUtc, and persisted last-synced timestamp across reload
+- [x] 3.1 Rewrite `ApiSportsFootballPlayerSearchProvider.SearchAsync` to drop HybridCache/index-build/team-resolution entirely and delegate to `IExternalFootballPlayerRepository.SearchAsync`, keeping existing starts-with-word/alphabetical/take-10 ranking in C#
+- [x] 3.2 Write/update search-provider unit tests verifying no HTTP calls occur and ranking matches prior behavior on persisted-row fixtures (Spec scenarios: "Search reads from persisted rows", "Search before any sync has run")
+- [x] 3.3 Add `syncPlayerSquads()` to `frontend/src/app/.../matches.service.ts`; add `SyncPlayerSquadsResult` and `PlayerSquadSyncError` to `matches.models.ts`
+- [x] 3.4 Update `admin-page.component.ts`: add sync-players button, `isSyncingPlayers` signal (client-side disable-while-syncing guard), and result/error/last-synced display mirroring `syncFootballData()` (Spec scenarios: "Admin sees success summary after sync", "Last-synced timestamp persists across reloads")
+- [x] 3.5 Write/update frontend component test or Playwright e2e covering: trigger sync, see TeamsProcessedCount/PlayersIndexedCount/Errors/SyncedAtUtc, and persisted last-synced timestamp across reload
 
-## Phase 4: Cleanup
+## Phase 4: Cleanup — COMPLETE
 
-- [ ] 4.1 Remove any now-dead `SquadCacheHours` references/config entries and confirm no remaining lazy-fetch code paths in the player search flow
+- [x] 4.1 Remove any now-dead `SquadCacheHours` references/config entries and confirm no remaining lazy-fetch code paths in the player search flow

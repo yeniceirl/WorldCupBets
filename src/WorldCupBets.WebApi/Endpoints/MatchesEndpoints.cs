@@ -40,6 +40,23 @@ public static class MatchesEndpoints
         .Produces(StatusCodes.Status401Unauthorized)
         .Produces(StatusCodes.Status403Forbidden);
 
+        group.MapGet("/{id:int}/insights", async (
+            int id,
+            IMessageBus messageBus,
+            CancellationToken cancellationToken) =>
+        {
+            var insights = await messageBus.InvokeAsync<MatchInsightsDto>(
+                new GetMatchInsightsQuery(id),
+                cancellationToken);
+
+            return Results.Ok(insights);
+        })
+        .WithName("GetMatchInsights")
+        .WithSummary("Get AI-generated insights (facts, head-to-head antecedents, Q&A) for a match.")
+        .Produces<MatchInsightsDto>(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status401Unauthorized)
+        .Produces(StatusCodes.Status403Forbidden);
+
         group.MapPost("/{id:int}/result", async (
             int id,
             RecordMatchResultRequest request,

@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using WorldCupBets.Application.Abstractions;
 using WorldCupBets.Application.Features.FootballData;
 using WorldCupBets.Domain.Repositories;
+using WorldCupBets.Infrastructure.AiInsights;
 using WorldCupBets.Infrastructure.Authentication;
 using WorldCupBets.Infrastructure.Caching;
 using WorldCupBets.Infrastructure.ExternalFootball;
@@ -21,6 +22,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddPersistence(configuration);
         services.AddCaching(configuration);
         services.AddExternalFootballData(configuration);
+        services.AddAiInsights(configuration);
         services.AddAuthenticationAdapters();
         services.AddMessaging(configuration);
         return services;
@@ -94,6 +96,38 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IPlayerSquadProvider>(_ => new ApiSportsPlayerSquadProvider(
             new HttpClient { BaseAddress = new Uri(apiSportsOptions.BaseUrl) },
             apiSportsOptions));
+
+        return services;
+    }
+
+    private static IServiceCollection AddAiInsights(this IServiceCollection services, IConfiguration configuration)
+    {
+        var section = configuration.GetSection("AiInsights");
+        var options = new AiInsightsOptions
+        {
+            ApiKey = section["ApiKey"] ?? string.Empty,
+            BaseUrl = section["BaseUrl"] ?? "https://opencode.ai/zen/go/v1",
+            Model = section["Model"] ?? "opencode-go/qwen3.7-plus",
+            TimeoutSeconds = int.TryParse(section["TimeoutSeconds"], out var timeoutSeconds) ? timeoutSeconds : 20,
+            MaxTokens = int.TryParse(section["MaxTokens"], out var maxTokens) ? maxTokens : 700,
+        };
+
+        services.AddSingleton(options);
+        services.AddSingleton<IAiInsightsProvider>(_ =>
+        {
+            if (string.IsNullOrWhiteSpace(options.ApiKey))
+            {
+                return new EmptyAiInsightsProvider();
+            }
+
+            var httpClient = new HttpClient
+            {
+                BaseAddress = new Uri(options.BaseUrl),
+                Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds)
+            };
+
+            return new OpenCodeZenAiInsightsProvider(httpClient, options);
+        });
 
         return services;
     }

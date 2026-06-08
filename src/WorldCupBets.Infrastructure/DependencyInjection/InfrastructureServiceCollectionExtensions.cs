@@ -109,7 +109,7 @@ public static class InfrastructureServiceCollectionExtensions
             ApiKey = section["ApiKey"] ?? string.Empty,
             BaseUrl = section["BaseUrl"] ?? "https://opencode.ai/zen/go/v1",
             Model = section["Model"] ?? "qwen3.7-plus",
-            TimeoutSeconds = int.TryParse(section["TimeoutSeconds"], out var timeoutSeconds) ? timeoutSeconds : 20,
+            TimeoutSeconds = int.TryParse(section["TimeoutSeconds"], out var timeoutSeconds) ? timeoutSeconds : 60,
             MaxTokens = int.TryParse(section["MaxTokens"], out var maxTokens) ? maxTokens : 700,
         };
 

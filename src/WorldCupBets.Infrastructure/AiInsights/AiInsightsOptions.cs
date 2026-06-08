@@ -8,7 +8,7 @@ public sealed class AiInsightsOptions
 
     public string Model { get; init; } = "qwen3.7-plus";
 
-    public int TimeoutSeconds { get; init; } = 20;
+    public int TimeoutSeconds { get; init; } = 60;
 
     public int MaxTokens { get; init; } = 700;
 }

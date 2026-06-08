@@ -21,6 +21,7 @@ import type {
 	SyncFootballDataResult,
 	SyncPlayerSquadsResult,
 	ImportGroupStageFixturesResult,
+	MatchInsights,
 } from "./matches.models";
 
 @Injectable({ providedIn: "root" })
@@ -83,5 +84,9 @@ export class MatchesService {
 
 	importGroupStageFixtures(): Observable<ImportGroupStageFixturesResult> {
 		return this.httpClient.post<ImportGroupStageFixturesResult>("/api/football-data/fixtures/group-stage/import", null);
+	}
+
+	getMatchInsights(matchId: number): Observable<MatchInsights> {
+		return this.httpClient.get<MatchInsights>(`/api/matches/${matchId}/insights`);
 	}
 }

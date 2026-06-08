@@ -21,6 +21,7 @@ public sealed class OpenCodeGoAiInsightsProvider(
         "Provide 2-3 short \"did you know\" facts grounded in the provided tournament context, " +
         "2-3 head-to-head antecedents (notable historical meetings, streaks, or results between these two national teams), " +
         "and 1-2 short question-and-answer pairs. " +
+        "Each entry in \"facts\" and \"antecedents\" MUST be a JSON object of the form { \"text\": \"...\" } — never a plain string. " +
         "Respond with ONLY the JSON object, no markdown, no commentary, no extra keys.";
 
     private static readonly JsonSerializerOptions ResponseJsonOptions = new(JsonSerializerDefaults.Web);
@@ -91,7 +92,8 @@ public sealed class OpenCodeGoAiInsightsProvider(
                 new ChatMessage("user", BuildUserMessage(prompt))
             ],
             options.MaxTokens,
-            0.6);
+            0.6,
+            EnableThinking: false);
     }
 
     private static string BuildUserMessage(MatchInsightsPrompt prompt)
@@ -178,7 +180,8 @@ public sealed class OpenCodeGoAiInsightsProvider(
         [property: JsonPropertyName("model")] string Model,
         [property: JsonPropertyName("messages")] IReadOnlyList<ChatMessage> Messages,
         [property: JsonPropertyName("max_tokens")] int MaxTokens,
-        [property: JsonPropertyName("temperature")] double Temperature);
+        [property: JsonPropertyName("temperature")] double Temperature,
+        [property: JsonPropertyName("enable_thinking")] bool EnableThinking);
 
     private sealed record ChatMessage(
         [property: JsonPropertyName("role")] string Role,

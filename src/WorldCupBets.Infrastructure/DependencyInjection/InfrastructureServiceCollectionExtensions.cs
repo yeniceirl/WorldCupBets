@@ -123,7 +123,7 @@ public static class InfrastructureServiceCollectionExtensions
 
             var httpClient = new HttpClient
             {
-                BaseAddress = new Uri(options.BaseUrl),
+                BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/"),
                 Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds)
             };
 

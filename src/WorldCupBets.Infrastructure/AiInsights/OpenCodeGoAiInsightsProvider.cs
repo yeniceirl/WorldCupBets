@@ -37,7 +37,7 @@ public sealed class OpenCodeGoAiInsightsProvider(
             using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(options.TimeoutSeconds));
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
 
-            using var request = new HttpRequestMessage(HttpMethod.Post, "/chat/completions");
+            using var request = new HttpRequestMessage(HttpMethod.Post, "chat/completions");
             request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", options.ApiKey);
             request.Content = JsonContent.Create(BuildRequestBody(prompt));
 

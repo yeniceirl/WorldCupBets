@@ -16,6 +16,24 @@ dotnet user-secrets set DB_PASSWORD "your-db-password" --project src/WorldCupBet
 dotnet user-secrets set JWT_SECRET "local-dev-jwt-secret-32-chars" --project src/WorldCupBets.AppHost
 ```
 
+## AI Insights (optional)
+
+The "Match AI Insights" feature calls OpenCode Zen, a paid LLM gateway. It is
+optional — when no API key is configured, the backend falls back to an empty
+provider and the feature quietly self-disables (no errors, no UI shown).
+
+To enable it locally, set the API key as a user secret on the Web API project
+(the same convention as `ApiSportsFootball:ApiKey` — never commit it to
+`appsettings.json`):
+
+```bash
+dotnet user-secrets set "AiInsights:ApiKey" "your-opencode-zen-api-key" --project src/WorldCupBets.WebApi
+```
+
+Non-secret settings (`BaseUrl`, `Model`, `TimeoutSeconds`, `MaxTokens`) live in
+`appsettings.json` under the `AiInsights` section and can be overridden per
+environment.
+
 Optional environment variables:
 
 - `DB_USERNAME` defaults to `app`

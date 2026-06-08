@@ -217,6 +217,26 @@ export interface SyncPlayerSquadsResult {
 	syncedAtUtc: string;
 }
 
+export interface MatchInsightFact {
+	text: string;
+}
+
+export interface MatchInsightAntecedent {
+	text: string;
+}
+
+export interface MatchInsightQa {
+	question: string;
+	answer: string;
+}
+
+export interface MatchInsights {
+	isAvailable: boolean;
+	facts: ReadonlyArray<MatchInsightFact>;
+	antecedents: ReadonlyArray<MatchInsightAntecedent>;
+	qa: ReadonlyArray<MatchInsightQa>;
+}
+
 export interface ImportGroupStageFixturesResult {
 	providerName: string;
 	importedCount: number;

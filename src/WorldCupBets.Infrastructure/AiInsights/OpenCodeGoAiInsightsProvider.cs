@@ -18,6 +18,9 @@ public sealed class OpenCodeGoAiInsightsProvider(
         "Given a match's context (teams, stage, group, and group standings), produce concise, " +
         "factual insight content as STRICT JSON matching this schema: " +
         "{ \"facts\": [{ \"text\": string }], \"antecedents\": [{ \"text\": string }], \"qa\": [{ \"question\": string, \"answer\": string }] }. " +
+        "All human-facing values inside \"text\", \"question\", and \"answer\" MUST be in Spanish with a friendly Cuban tone, like friends talking football. " +
+        "Use Cuban vocabulary naturally (for example: asere, socio, qué bolá, candela, tremendo, dale), but stay factual, respectful, and do not force slang into every sentence. " +
+        "Avoid non-Cuban-first slang such as pana, and avoid vulgar terms. " +
         "Provide 2-3 short \"did you know\" facts grounded in the provided tournament context, " +
         "2-3 head-to-head antecedents (notable historical meetings, streaks, or results between these two national teams), " +
         "and 1-2 short question-and-answer pairs. " +

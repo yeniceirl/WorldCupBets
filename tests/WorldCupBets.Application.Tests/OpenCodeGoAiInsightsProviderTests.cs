@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 using Microsoft.Extensions.Logging.Abstractions;
 using WorldCupBets.Application.Abstractions;
 using WorldCupBets.Infrastructure.AiInsights;
@@ -126,6 +127,54 @@ public sealed class OpenCodeGoAiInsightsProviderTests
 
         Assert.False(result.IsAvailable);
         Assert.False(called);
+    }
+
+    [Fact]
+    public async Task GenerateAsync_Requests_Spanish_Cuban_Friendly_Content_Without_Non_Cuban_Slang()
+    {
+        string? requestBody = null;
+        var handler = new StubHttpMessageHandler(request =>
+        {
+            requestBody = request.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("""
+                    {
+                        "choices": [
+                            {
+                                "message": {
+                                    "content": "{ \"facts\": [{ \"text\": \"Asere, Argentina viene con tremenda historia mundialista.\" }], \"antecedents\": [], \"qa\": [] }"
+                                }
+                            }
+                        ]
+                    }
+                    """),
+            };
+        });
+        var provider = new OpenCodeGoAiInsightsProvider(
+            new HttpClient(handler) { BaseAddress = new Uri("https://example.test") },
+            new AiInsightsOptions { ApiKey = "test-key" },
+            NullLogger<OpenCodeGoAiInsightsProvider>.Instance);
+
+        await provider.GenerateAsync(SamplePrompt, CancellationToken.None);
+
+        Assert.NotNull(requestBody);
+        using var requestJson = JsonDocument.Parse(requestBody!);
+        var messages = requestJson.RootElement.GetProperty("messages");
+        var systemPrompt = messages.EnumerateArray().Single(message => message.GetProperty("role").GetString() == "system");
+        var systemContent = systemPrompt.GetProperty("content").GetString();
+
+        Assert.Contains("Spanish", systemContent);
+        Assert.Contains("Cuban", systemContent);
+        Assert.Contains("asere", systemContent);
+        Assert.Contains("socio", systemContent);
+        Assert.Contains("qué bolá", systemContent);
+        Assert.Contains("candela", systemContent);
+        Assert.Contains("pana", systemContent);
+        Assert.Contains("Avoid", systemContent);
+        Assert.Contains("text", systemContent);
+        Assert.Contains("question", systemContent);
+        Assert.Contains("answer", systemContent);
     }
 
     private sealed class StubHttpMessageHandler(Func<HttpRequestMessage, HttpResponseMessage> responseFactory) : HttpMessageHandler

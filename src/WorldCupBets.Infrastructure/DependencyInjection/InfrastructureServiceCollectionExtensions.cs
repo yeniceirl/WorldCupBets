@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using WorldCupBets.Application.Abstractions;
 using WorldCupBets.Application.Features.FootballData;
 using WorldCupBets.Domain.Repositories;
@@ -113,7 +114,7 @@ public static class InfrastructureServiceCollectionExtensions
         };
 
         services.AddSingleton(options);
-        services.AddSingleton<IAiInsightsProvider>(_ =>
+        services.AddSingleton<IAiInsightsProvider>(serviceProvider =>
         {
             if (string.IsNullOrWhiteSpace(options.ApiKey))
             {
@@ -126,7 +127,10 @@ public static class InfrastructureServiceCollectionExtensions
                 Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds)
             };
 
-            return new OpenCodeZenAiInsightsProvider(httpClient, options);
+            return new OpenCodeGoAiInsightsProvider(
+                httpClient,
+                options,
+                serviceProvider.GetRequiredService<ILogger<OpenCodeGoAiInsightsProvider>>());
         });
 
         return services;

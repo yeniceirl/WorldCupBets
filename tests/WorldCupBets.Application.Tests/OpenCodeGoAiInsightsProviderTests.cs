@@ -1,11 +1,12 @@
 using System.Net;
+using Microsoft.Extensions.Logging.Abstractions;
 using WorldCupBets.Application.Abstractions;
 using WorldCupBets.Infrastructure.AiInsights;
 using Xunit;
 
 namespace WorldCupBets.Application.Tests;
 
-public sealed class OpenCodeZenAiInsightsProviderTests
+public sealed class OpenCodeGoAiInsightsProviderTests
 {
     private static readonly MatchInsightsPrompt SamplePrompt = new(
         "Argentina",
@@ -35,9 +36,10 @@ public sealed class OpenCodeZenAiInsightsProviderTests
                     }
                     """),
             });
-        var provider = new OpenCodeZenAiInsightsProvider(
+        var provider = new OpenCodeGoAiInsightsProvider(
             new HttpClient(handler) { BaseAddress = new Uri("https://example.test") },
-            new AiInsightsOptions { ApiKey = "test-key" });
+            new AiInsightsOptions { ApiKey = "test-key" },
+            NullLogger<OpenCodeGoAiInsightsProvider>.Instance);
 
         var result = await provider.GenerateAsync(SamplePrompt, CancellationToken.None);
 
@@ -55,9 +57,10 @@ public sealed class OpenCodeZenAiInsightsProviderTests
     public async Task GenerateAsync_Returns_Unavailable_When_Provider_Returns_Non_Success_Status()
     {
         var handler = new StubHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.InternalServerError));
-        var provider = new OpenCodeZenAiInsightsProvider(
+        var provider = new OpenCodeGoAiInsightsProvider(
             new HttpClient(handler) { BaseAddress = new Uri("https://example.test") },
-            new AiInsightsOptions { ApiKey = "test-key" });
+            new AiInsightsOptions { ApiKey = "test-key" },
+            NullLogger<OpenCodeGoAiInsightsProvider>.Instance);
 
         var result = await provider.GenerateAsync(SamplePrompt, CancellationToken.None);
 
@@ -81,9 +84,10 @@ public sealed class OpenCodeZenAiInsightsProviderTests
                     }
                     """),
             });
-        var provider = new OpenCodeZenAiInsightsProvider(
+        var provider = new OpenCodeGoAiInsightsProvider(
             new HttpClient(handler) { BaseAddress = new Uri("https://example.test") },
-            new AiInsightsOptions { ApiKey = "test-key" });
+            new AiInsightsOptions { ApiKey = "test-key" },
+            NullLogger<OpenCodeGoAiInsightsProvider>.Instance);
 
         var result = await provider.GenerateAsync(SamplePrompt, CancellationToken.None);
 
@@ -94,9 +98,10 @@ public sealed class OpenCodeZenAiInsightsProviderTests
     public async Task GenerateAsync_Returns_Unavailable_When_Request_Throws()
     {
         var handler = new StubHttpMessageHandler(_ => throw new HttpRequestException("boom"));
-        var provider = new OpenCodeZenAiInsightsProvider(
+        var provider = new OpenCodeGoAiInsightsProvider(
             new HttpClient(handler) { BaseAddress = new Uri("https://example.test") },
-            new AiInsightsOptions { ApiKey = "test-key" });
+            new AiInsightsOptions { ApiKey = "test-key" },
+            NullLogger<OpenCodeGoAiInsightsProvider>.Instance);
 
         var result = await provider.GenerateAsync(SamplePrompt, CancellationToken.None);
 
@@ -112,9 +117,10 @@ public sealed class OpenCodeZenAiInsightsProviderTests
             called = true;
             return new HttpResponseMessage(HttpStatusCode.OK);
         });
-        var provider = new OpenCodeZenAiInsightsProvider(
+        var provider = new OpenCodeGoAiInsightsProvider(
             new HttpClient(handler) { BaseAddress = new Uri("https://example.test") },
-            new AiInsightsOptions { ApiKey = "" });
+            new AiInsightsOptions { ApiKey = "" },
+            NullLogger<OpenCodeGoAiInsightsProvider>.Instance);
 
         var result = await provider.GenerateAsync(SamplePrompt, CancellationToken.None);
 

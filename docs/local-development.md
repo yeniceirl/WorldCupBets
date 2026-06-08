@@ -18,7 +18,9 @@ dotnet user-secrets set JWT_SECRET "local-dev-jwt-secret-32-chars" --project src
 
 ## AI Insights (optional)
 
-The "Match AI Insights" feature calls OpenCode Zen, a paid LLM gateway. It is
+The "Match AI Insights" feature calls OpenCode Go (a low-cost subscription
+running through the OpenCode Zen gateway, via its dedicated `/zen/go/` endpoint).
+It is
 optional — when no API key is configured, the backend falls back to an empty
 provider and the feature quietly self-disables (no errors, no UI shown).
 

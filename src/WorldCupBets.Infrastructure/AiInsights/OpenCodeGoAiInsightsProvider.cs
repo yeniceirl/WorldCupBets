@@ -1,12 +1,18 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Logging;
 using WorldCupBets.Application.Abstractions;
 
 namespace WorldCupBets.Infrastructure.AiInsights;
 
-public sealed class OpenCodeZenAiInsightsProvider(HttpClient httpClient, AiInsightsOptions options) : IAiInsightsProvider
+public sealed class OpenCodeGoAiInsightsProvider(
+    HttpClient httpClient,
+    AiInsightsOptions options,
+    ILogger<OpenCodeGoAiInsightsProvider> logger) : IAiInsightsProvider
 {
+    private const int RawContentLogLength = 300;
+
     private const string SystemPrompt =
         "You are a football (soccer) trivia assistant for the FIFA World Cup 2026. " +
         "Given a match's context (teams, stage, group, and group standings), produce concise, " +
@@ -38,6 +44,11 @@ public sealed class OpenCodeZenAiInsightsProvider(HttpClient httpClient, AiInsig
             using var response = await httpClient.SendAsync(request, linkedCts.Token);
             if (!response.IsSuccessStatusCode)
             {
+                var body = await response.Content.ReadAsStringAsync(linkedCts.Token);
+                logger.LogWarning(
+                    "AI insights request to OpenCode Go failed with status {StatusCode}: {Body}",
+                    (int)response.StatusCode,
+                    Truncate(body));
                 return MatchInsightsResult.Unavailable;
             }
 
@@ -45,15 +56,30 @@ public sealed class OpenCodeZenAiInsightsProvider(HttpClient httpClient, AiInsig
             var content = payload?.Choices?.FirstOrDefault()?.Message?.Content;
             if (string.IsNullOrWhiteSpace(content))
             {
+                logger.LogWarning(
+                    "AI insights response from OpenCode Go for {HomeTeam} vs {AwayTeam} contained no message content. Choices count: {ChoicesCount}",
+                    prompt.HomeTeamName,
+                    prompt.AwayTeamName,
+                    payload?.Choices?.Count ?? 0);
                 return MatchInsightsResult.Unavailable;
             }
 
-            return ParseInsightContent(content);
+            return ParseInsightContent(content, prompt, logger);
         }
-        catch
+        catch (Exception ex)
         {
+            logger.LogWarning(
+                ex,
+                "AI insights request to OpenCode Go threw an exception for {HomeTeam} vs {AwayTeam}",
+                prompt.HomeTeamName,
+                prompt.AwayTeamName);
             return MatchInsightsResult.Unavailable;
         }
+    }
+
+    private static string Truncate(string value)
+    {
+        return value.Length <= RawContentLogLength ? value : value[..RawContentLogLength];
     }
 
     private ChatCompletionRequest BuildRequestBody(MatchInsightsPrompt prompt)
@@ -85,17 +111,27 @@ public sealed class OpenCodeZenAiInsightsProvider(HttpClient httpClient, AiInsig
         return JsonSerializer.Serialize(payload, ResponseJsonOptions);
     }
 
-    private static MatchInsightsResult ParseInsightContent(string content)
+    private static MatchInsightsResult ParseInsightContent(string content, MatchInsightsPrompt prompt, ILogger logger)
     {
         var json = ExtractJsonObject(content);
         if (json is null)
         {
+            logger.LogWarning(
+                "AI insights content for {HomeTeam} vs {AwayTeam} did not contain a JSON object. Raw content snippet: {ContentSnippet}",
+                prompt.HomeTeamName,
+                prompt.AwayTeamName,
+                Truncate(content));
             return MatchInsightsResult.Unavailable;
         }
 
         var parsed = JsonSerializer.Deserialize<InsightContentPayload>(json, ResponseJsonOptions);
         if (parsed is null)
         {
+            logger.LogWarning(
+                "AI insights content for {HomeTeam} vs {AwayTeam} failed to deserialize. Raw content snippet: {ContentSnippet}",
+                prompt.HomeTeamName,
+                prompt.AwayTeamName,
+                Truncate(json));
             return MatchInsightsResult.Unavailable;
         }
 
@@ -114,6 +150,11 @@ public sealed class OpenCodeZenAiInsightsProvider(HttpClient httpClient, AiInsig
 
         if (facts.Length == 0 && antecedents.Length == 0 && qa.Length == 0)
         {
+            logger.LogWarning(
+                "AI insights content for {HomeTeam} vs {AwayTeam} deserialized but contained no usable facts, antecedents, or Q&A pairs. Raw content snippet: {ContentSnippet}",
+                prompt.HomeTeamName,
+                prompt.AwayTeamName,
+                Truncate(json));
             return MatchInsightsResult.Unavailable;
         }
 

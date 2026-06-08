@@ -6,7 +6,7 @@ public sealed class AiInsightsOptions
 
     public string BaseUrl { get; init; } = "https://opencode.ai/zen/go/v1";
 
-    public string Model { get; init; } = "opencode-go/qwen3.7-plus";
+    public string Model { get; init; } = "qwen3.7-plus";
 
     public int TimeoutSeconds { get; init; } = 20;
 

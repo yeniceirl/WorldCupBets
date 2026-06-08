@@ -2,6 +2,7 @@ import { DatePipe, NgTemplateOutlet } from "@angular/common";
 import { Component, computed, inject, signal } from "@angular/core";
 import { forkJoin } from "rxjs";
 import { formatCopaCoin } from "../../shared/copa-coin-format";
+import { MatchInsightCardComponent } from "./match-insight-card.component";
 import { MatchesService } from "./matches.service";
 import type {
 	CurrentUserSummary,
@@ -22,7 +23,7 @@ interface MatchDateGroup {
 
 @Component({
 	selector: "app-matches-page",
-	imports: [DatePipe, NgTemplateOutlet],
+	imports: [DatePipe, NgTemplateOutlet, MatchInsightCardComponent],
 	template: `
 		<section class="space-y-6">
 			<header class="overflow-hidden rounded-[2rem] border border-white/70 bg-white/85 p-6 shadow-xl shadow-sky-900/5 backdrop-blur dark:border-slate-700 dark:bg-slate-950/80" data-testid="matches-header">
@@ -219,6 +220,10 @@ interface MatchDateGroup {
 									}
 								</div>
 								</div>
+							}
+
+							@if (selectedMatchFilter() === "Today") {
+								<app-match-insight-card [matchId]="match.id" />
 							}
 
 						</article>

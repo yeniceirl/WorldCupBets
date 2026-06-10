@@ -80,7 +80,7 @@ import { ChallengesService } from "./challenges.service";
 					<section class="grid gap-4" data-testid="challenges-list">
 						@for (challenge of challenges(); track challenge.id) {
 							<article class="overflow-hidden rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm dark:border-slate-700 dark:bg-slate-950/80" [attr.data-testid]="'challenge-card-' + challenge.id">
-								<div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+								<div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
 									<div class="min-w-0">
 										<div class="flex flex-wrap gap-2 text-xs font-bold uppercase tracking-wide">
 											<span class="rounded-full bg-slate-100 px-3 py-1 text-slate-700 dark:bg-slate-800 dark:text-slate-200">{{ getStatusLabel(challenge.status) }}</span>
@@ -89,26 +89,34 @@ import { ChallengesService } from "./challenges.service";
 												<span class="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200">Winner: {{ getWinnerName(challenge) }}</span>
 											}
 										</div>
-										<div class="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
-											<span class="rounded-full bg-sky-50 px-3 py-1 text-sky-700 dark:bg-sky-950 dark:text-sky-200">{{ getChallengeMatchLabel(challenge) }}</span>
-											@if (challenge.match.stage) {
-												<span class="rounded-full bg-slate-50 px-3 py-1 text-slate-600 dark:bg-slate-900 dark:text-slate-300">{{ challenge.match.stage }}</span>
-											}
-											<span class="rounded-full bg-slate-50 px-3 py-1 text-slate-600 dark:bg-slate-900 dark:text-slate-300">{{ formatMatchStartsAt(challenge.match.startsAtUtc) }}</span>
-											<span class="rounded-full bg-slate-50 px-3 py-1 text-slate-600 dark:bg-slate-900 dark:text-slate-300">Result: {{ getMatchResultLabel(challenge) }}</span>
-										</div>
 										<h2 class="mt-3 text-xl font-black text-slate-950 dark:text-white">{{ challenge.claimText }}</h2>
 										<div class="mt-3 grid gap-2 text-sm text-slate-600 dark:text-slate-300 sm:grid-cols-2">
 											<p class="rounded-xl px-3 py-2" [class]="getPositionCardClasses(challenge, 'Creator')"><span class="font-black" [class]="getPositionLabelClasses(challenge, 'Creator')">For the claim</span><br />{{ getPositionName(challenge, "Creator") }}</p>
 											<p class="rounded-xl px-3 py-2" [class]="getPositionCardClasses(challenge, 'Taker')"><span class="font-black" [class]="getPositionLabelClasses(challenge, 'Taker')">Against the claim</span><br />{{ getPositionName(challenge, "Taker") }}</p>
 										</div>
+										<div class="mt-4 flex flex-wrap gap-3">
+											@if (challenge.status === "Open" && canAccept(challenge)) {
+												<button type="button" class="rounded-xl border border-emerald-600 bg-emerald-600 px-4 py-3 text-sm font-black text-white shadow-lg shadow-emerald-900/10 transition hover:-translate-y-0.5 hover:bg-emerald-700 disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60" [disabled]="submittingChallengeId() === challenge.id" (click)="acceptChallenge(challenge)" [attr.data-testid]="'challenge-accept-' + challenge.id">{{ submittingChallengeId() === challenge.id ? "Joining..." : "Take the challenge" }}</button>
+											}
+											@if (canCancel(challenge)) {
+												<button type="button" class="rounded-xl border border-rose-300 px-4 py-3 text-sm font-bold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-rose-900 dark:text-rose-200 dark:hover:bg-rose-950" [disabled]="submittingChallengeId() === challenge.id" (click)="cancelChallenge(challenge)" [attr.data-testid]="'challenge-cancel-' + challenge.id">{{ submittingChallengeId() === challenge.id ? "Canceling..." : "Cancel" }}</button>
+											}
+										</div>
 									</div>
-									@if (challenge.status === "Open" && canAccept(challenge)) {
-										<button type="button" class="rounded-xl border border-emerald-600 bg-emerald-600 px-4 py-3 text-sm font-black text-white shadow-lg shadow-emerald-900/10 transition hover:-translate-y-0.5 hover:bg-emerald-700 disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60" [disabled]="submittingChallengeId() === challenge.id" (click)="acceptChallenge(challenge)" [attr.data-testid]="'challenge-accept-' + challenge.id">{{ submittingChallengeId() === challenge.id ? "Joining..." : "Take the challenge" }}</button>
-									}
-									@if (canCancel(challenge)) {
-										<button type="button" class="rounded-xl border border-rose-300 px-4 py-3 text-sm font-bold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-rose-900 dark:text-rose-200 dark:hover:bg-rose-950" [disabled]="submittingChallengeId() === challenge.id" (click)="cancelChallenge(challenge)" [attr.data-testid]="'challenge-cancel-' + challenge.id">{{ submittingChallengeId() === challenge.id ? "Canceling..." : "Cancel" }}</button>
-									}
+									<aside class="rounded-2xl border border-sky-100 bg-sky-50/70 p-4 text-sm text-slate-700 dark:border-sky-900 dark:bg-sky-950/40 dark:text-slate-200" [attr.data-testid]="'challenge-match-context-' + challenge.id">
+										<p class="text-[0.65rem] font-black uppercase tracking-[0.2em] text-sky-700 dark:text-sky-300">Match</p>
+										<p class="mt-2 text-base font-black text-slate-950 dark:text-white">{{ getChallengeMatchLabel(challenge) }}</p>
+										<div class="mt-3 grid gap-2 text-xs font-semibold">
+											@if (challenge.match.stage) {
+												<span class="rounded-full bg-white/80 px-3 py-1 text-slate-600 dark:bg-slate-900/80 dark:text-slate-300">{{ challenge.match.stage }}</span>
+											}
+											<span class="rounded-full bg-white/80 px-3 py-1 text-slate-600 dark:bg-slate-900/80 dark:text-slate-300">{{ formatMatchStartsAt(challenge.match.startsAtUtc) }}</span>
+											@if (challenge.match.venue) {
+												<span class="rounded-full bg-white/80 px-3 py-1 text-slate-600 dark:bg-slate-900/80 dark:text-slate-300">{{ challenge.match.venue }}</span>
+											}
+											<span class="rounded-full bg-white/80 px-3 py-1 text-slate-600 dark:bg-slate-900/80 dark:text-slate-300">Result: {{ getMatchResultLabel(challenge) }}</span>
+										</div>
+									</aside>
 								</div>
 								@if (isAdmin() && challenge.status !== "Settled" && challenge.status !== "Voided" && challenge.status !== "Expired") {
 									<div class="mt-5 flex flex-wrap gap-3 border-t border-slate-100 pt-5 dark:border-slate-800">

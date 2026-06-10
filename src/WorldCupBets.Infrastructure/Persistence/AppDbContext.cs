@@ -11,6 +11,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     [
         typeof(Match),
         typeof(MatchBet),
+        typeof(MatchChallenge),
         typeof(TournamentSettlement),
         typeof(User)
     ];
@@ -32,6 +33,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<Match> Matches => Set<Match>();
 
     public DbSet<MatchBet> MatchBets => Set<MatchBet>();
+
+    public DbSet<MatchChallenge> MatchChallenges => Set<MatchChallenge>();
+
+    public DbSet<MatchChallengePosition> MatchChallengePositions => Set<MatchChallengePosition>();
 
     public DbSet<TournamentSettlement> TournamentSettlements => Set<TournamentSettlement>();
 

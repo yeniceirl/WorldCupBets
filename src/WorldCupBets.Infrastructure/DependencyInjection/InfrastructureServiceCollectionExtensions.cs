@@ -38,6 +38,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IApplicationTransactionFactory, EfApplicationTransactionFactory>();
         services.AddScoped<IMatchRepository, MatchRepository>();
         services.AddScoped<IMatchBetRepository, MatchBetRepository>();
+        services.AddScoped<IMatchChallengeRepository, MatchChallengeRepository>();
         services.AddScoped<ITournamentPickRepository, TournamentPickRepository>();
         services.AddScoped<ITournamentSettlementRepository, TournamentSettlementRepository>();
         services.AddScoped<IUserRepository, UserRepository>();

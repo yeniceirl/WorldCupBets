@@ -86,13 +86,13 @@ import { ChallengesService } from "./challenges.service";
 											<span class="rounded-full bg-slate-100 px-3 py-1 text-slate-700 dark:bg-slate-800 dark:text-slate-200">{{ getStatusLabel(challenge.status) }}</span>
 											<span class="rounded-full bg-amber-50 px-3 py-1 text-amber-700 dark:bg-amber-950 dark:text-amber-200">{{ formatCopaCoin(challenge.stakeAmountCc) }} CC each</span>
 											@if (challenge.status === "Settled" && challenge.winnerSide) {
-												<span class="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200">Winner: {{ getWinnerLabel(challenge.winnerSide) }}</span>
+												<span class="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200">Winner: {{ getWinnerName(challenge) }}</span>
 											}
 										</div>
 										<h2 class="mt-3 text-xl font-black text-slate-950 dark:text-white">{{ challenge.claimText }}</h2>
 										<div class="mt-3 grid gap-2 text-sm text-slate-600 dark:text-slate-300 sm:grid-cols-2">
-											<p class="rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-900"><span class="font-black text-slate-800 dark:text-slate-100">For the claim</span><br />{{ getPositionName(challenge, "Creator") }}</p>
-											<p class="rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-900"><span class="font-black text-slate-800 dark:text-slate-100">Against the claim</span><br />{{ getPositionName(challenge, "Taker") }}</p>
+											<p class="rounded-xl px-3 py-2" [class]="getPositionCardClasses(challenge, 'Creator')"><span class="font-black" [class]="getPositionLabelClasses(challenge, 'Creator')">For the claim</span><br />{{ getPositionName(challenge, "Creator") }}</p>
+											<p class="rounded-xl px-3 py-2" [class]="getPositionCardClasses(challenge, 'Taker')"><span class="font-black" [class]="getPositionLabelClasses(challenge, 'Taker')">Against the claim</span><br />{{ getPositionName(challenge, "Taker") }}</p>
 										</div>
 									</div>
 									@if (challenge.status === "Open" && canAccept(challenge)) {
@@ -251,6 +251,23 @@ export class ChallengesPageComponent {
 	}
 	getWinnerLabel(side: ChallengeSide): string {
 		return side === "Creator" ? "Claim" : "Challenge taker";
+	}
+	getWinnerName(challenge: MatchChallenge): string {
+		return challenge.winnerSide ? this.getPositionName(challenge, challenge.winnerSide) : "Pending";
+	}
+	getPositionCardClasses(challenge: MatchChallenge, side: ChallengeSide): string {
+		if (challenge.status === "Settled" && challenge.winnerSide === side) {
+			return "border border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-200";
+		}
+
+		return "bg-slate-50 dark:bg-slate-900";
+	}
+	getPositionLabelClasses(challenge: MatchChallenge, side: ChallengeSide): string {
+		if (challenge.status === "Settled" && challenge.winnerSide === side) {
+			return "text-emerald-900 dark:text-emerald-100";
+		}
+
+		return "text-slate-800 dark:text-slate-100";
 	}
 	toNumber(value: string): number {
 		const amount = Number(value);

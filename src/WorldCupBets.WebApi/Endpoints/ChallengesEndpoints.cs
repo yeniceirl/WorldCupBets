@@ -46,7 +46,7 @@ public static class ChallengesEndpoints
             }
 
             var result = await messageBus.InvokeAsync<Result<ChallengeMutationResultDto>>(
-                new CreateChallengeCommand(userId, request.MatchId, request.ClaimText, request.CreatorSideText, request.TakerSideText, request.StakeAmountCc),
+                new CreateChallengeCommand(userId, request.MatchId, request.ClaimText, request.StakeAmountCc),
                 cancellationToken);
 
             return ToCreateOrAcceptResponse(result, "The challenge could not be created.");
@@ -201,8 +201,6 @@ public static class ChallengesEndpoints
 public sealed record CreateChallengeRequest(
     int MatchId,
     string ClaimText,
-    string CreatorSideText,
-    string TakerSideText,
     decimal StakeAmountCc);
 
 public sealed record SettleChallengeRequest(string WinnerSide);

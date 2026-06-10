@@ -18,7 +18,7 @@ public sealed class ChallengeHandlerTests
         var challenges = new StubChallengeRepository();
 
         var result = await CreateChallengeHandler.Handle(
-            new CreateChallengeCommand(user.Id, match.Id, "Top scorer gets two", "Yes", "No", 25),
+            new CreateChallengeCommand(user.Id, match.Id, "Top scorer gets two", 25),
             new StubUserRepository(user),
             new StubMatchRepository(match),
             challenges,
@@ -39,7 +39,7 @@ public sealed class ChallengeHandlerTests
         var challenges = new StubChallengeRepository();
 
         var result = await CreateChallengeHandler.Handle(
-            new CreateChallengeCommand(user.Id, match.Id, "Top scorer gets two", "Yes", "No", 25),
+            new CreateChallengeCommand(user.Id, match.Id, "Top scorer gets two", 25),
             new StubUserRepository(user),
             new StubMatchRepository(match),
             challenges,
@@ -59,7 +59,7 @@ public sealed class ChallengeHandlerTests
         var challenges = new StubChallengeRepository();
 
         var result = await CreateChallengeHandler.Handle(
-            new CreateChallengeCommand(user.Id, 404, "Claim", "For", "Against", 25),
+            new CreateChallengeCommand(user.Id, 404, "Claim", 25),
             new StubUserRepository(user),
             new StubMatchRepository(),
             challenges,
@@ -80,7 +80,7 @@ public sealed class ChallengeHandlerTests
         var challenges = new StubChallengeRepository();
 
         var result = await CreateChallengeHandler.Handle(
-            new CreateChallengeCommand(user.Id, match.Id, " ", "For", "Against", 25),
+            new CreateChallengeCommand(user.Id, match.Id, " ", 25),
             new StubUserRepository(user),
             new StubMatchRepository(match),
             challenges,
@@ -101,7 +101,7 @@ public sealed class ChallengeHandlerTests
         var challenges = new StubChallengeRepository();
 
         var result = await CreateChallengeHandler.Handle(
-            new CreateChallengeCommand(user.Id, match.Id, "Claim", "For", "Against", 25),
+            new CreateChallengeCommand(user.Id, match.Id, "Claim", 25),
             new StubUserRepository(user),
             new StubMatchRepository(match),
             challenges,

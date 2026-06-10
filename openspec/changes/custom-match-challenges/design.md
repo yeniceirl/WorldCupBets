@@ -56,7 +56,7 @@ Pending stake:
 
 API routes: `GET /api/challenges?matchId=`, `POST /api/challenges`, `POST /api/challenges/{id}/accept`, `POST /api/challenges/{id}/settlement`, `POST /api/challenges/{id}/void`, `POST /api/challenges/{id}/expire`.
 
-Request fields: `matchId`, `claimText`, `creatorSideText`, `takerSideText`, `stakeAmountCc`, and settlement `winnerSide` (`Creator`/`Taker`). Text is trimmed and length-limited in handlers/domain; stake must be positive.
+Request fields: `matchId`, `claimText`, `stakeAmountCc`, and settlement `winnerSide` (`Creator`/`Taker`). The creator backs the claim; the taker accepts the implicit opposite side. Text is trimmed and length-limited in handlers/domain; stake must be positive.
 
 ## Testing Strategy
 

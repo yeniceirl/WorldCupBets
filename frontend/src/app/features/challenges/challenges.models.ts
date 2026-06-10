@@ -11,8 +11,6 @@ export interface MatchChallenge {
 	id: number;
 	matchId: number;
 	claimText: string;
-	creatorSideText: string;
-	takerSideText: string;
 	stakeAmountCc: number;
 	status: ChallengeStatus;
 	winnerSide: ChallengeSide | null;
@@ -26,8 +24,6 @@ export interface MatchChallenge {
 export interface CreateChallengeRequest {
 	matchId: number;
 	claimText: string;
-	creatorSideText: string;
-	takerSideText: string;
 	stakeAmountCc: number;
 }
 export interface ChallengeMutationResult {

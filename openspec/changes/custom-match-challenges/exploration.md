@@ -20,14 +20,14 @@ There is no existing challenge/reto model or UI. The closest reusable patterns a
 - `tests/WorldCupBets.Application.Tests/*Bet*Tests.cs` — existing handler/unit-test style should be copied for challenge creation, acceptance, cancellation/expiry, and settlement rules.
 
 ### Approaches
-1. **Free-text matched challenge market** — Creator writes a match-scoped claim, stake amount, and creator side; another bettor accepts the opposite side for the same stake. Settlement is manual/admin: mark creator side won, taker side won, void/refund, or expire/refund.
+1. **Free-text matched challenge market** — Creator writes a match-scoped claim and stake amount; another bettor accepts the implicit opposite side for the same stake. Settlement is manual/admin: mark the claim as happened or failed, void/refund, or expire/refund.
    - Pros: Preserves the user's core requirement (no predefined bet taxonomy), simple mental model, avoids unmaintainable custom rules, and fits CopaCoin escrow/payout patterns.
    - Cons: Requires moderation/settlement authority because the app cannot know whether "Messi scores 3 goals" happened unless someone decides it; needs clear lifecycle/statuses.
    - Effort: Medium
 
 2. **Reusable generic challenge with structured outcome options** — Creator writes a prompt plus two custom labels (e.g., "Messi scores 3+" vs "He doesn't"), and other users take one available side; settlement picks one option.
-   - Pros: More expressive than a hardcoded opposite side and supports non-binary wording while still avoiding predefined domain bet types.
-   - Cons: Slightly more complex UI and data model; if multiple users can join both sides, payout math becomes a pool-market design instead of a simple head-to-head bet.
+   - Pros: More expressive and supports non-binary wording while still avoiding predefined domain bet types.
+   - Cons: More complex UI and data model; if multiple users can join both sides, payout math becomes a pool-market design instead of a simple head-to-head bet.
    - Effort: Medium/High
 
 3. **Extend `TournamentPick` or `MatchBet` with custom categories/text** — Add custom text/category fields to existing bet tables and reuse existing endpoints.

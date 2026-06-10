@@ -7,7 +7,7 @@ Users need personalized match-scoped retos with friends beyond fixed winner bets
 ## Scope
 
 ### In Scope
-- Match-scoped challenges with free-text claim, equal stake, creator side, and opposite taker side.
+- Match-scoped challenges with free-text claim and equal stake; creator backs the claim and taker accepts the implicit opposite side.
 - Lifecycle: `Open`, `Matched`, `Settled`, `Voided`, `Expired`.
 - Immediate CopaCoin escrow, payout/refund settlement, and pending-stake inclusion.
 - Authenticated listing, creation, acceptance, and admin settlement/voiding.

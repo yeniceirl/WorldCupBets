@@ -8,12 +8,12 @@ Enable authenticated users to create generic, free-text, match-scoped retos with
 
 ### Requirement: Custom Challenge Creation
 
-The system MUST allow an authenticated user to create an `Open` match challenge with a match, free-text claim, equal stake amount, creator side text, and opposite taker side text while the match betting window is open. The system MUST escrow the creator stake immediately and MUST reject invalid match, closed betting window, empty/overlong text, non-positive stake, or insufficient CopaCoins. Challenge text MUST remain generic/user-authored, not selected from predefined bet categories.
+The system MUST allow an authenticated user to create an `Open` match challenge with a match, free-text claim, and equal stake amount while the match betting window is open. The system MUST escrow the creator stake immediately and MUST reject invalid match, closed betting window, empty/overlong text, non-positive stake, or insufficient CopaCoins. Challenge text MUST remain generic/user-authored, not selected from predefined bet categories.
 
 #### Scenario: Creator opens a valid challenge
 
 - GIVEN an authenticated user with enough available CopaCoins and a valid match
-- WHEN they submit claim text, creator side, taker side, and stake
+- WHEN they submit claim text and stake
 - THEN the challenge is created as `Open`
 - AND the creator stake is escrowed and no taker is assigned
 

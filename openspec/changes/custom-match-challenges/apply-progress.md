@@ -47,7 +47,7 @@ Standard mode. `openspec/config.yaml` has `strict_tdd: false`; no strict TDD evi
 
 ## Deviations
 
-None — implementation matches the Phase 1, Phase 2, Phase 3, and Phase 4 design boundaries. Text limits were set in the domain (`280` claim characters, `120` side characters) because the spec required length limits but did not define exact values.
+None — implementation matches the Phase 1, Phase 2, Phase 3, and Phase 4 design boundaries. The public creation contract now only asks for claim text and stake; internal side labels remain generic implementation details.
 
 ## Issues
 

@@ -7,6 +7,9 @@ namespace WorldCupBets.Application.Features.Challenges;
 
 public sealed class CreateChallengeHandler
 {
+    private const string CreatorSideText = "Claim happens";
+    private const string TakerSideText = "Claim does not happen";
+
     public static async Task<Result<ChallengeMutationResultDto>> Handle(
         CreateChallengeCommand command,
         IUserRepository userRepository,
@@ -41,8 +44,8 @@ public sealed class CreateChallengeHandler
                 command.CreatorUserId,
                 command.MatchId,
                 command.ClaimText,
-                command.CreatorSideText,
-                command.TakerSideText,
+                CreatorSideText,
+                TakerSideText,
                 command.StakeAmountCc,
                 DateTime.UtcNow);
         }

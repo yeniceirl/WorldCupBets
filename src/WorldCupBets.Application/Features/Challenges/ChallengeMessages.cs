@@ -8,8 +8,6 @@ public sealed record CreateChallengeCommand(
     int CreatorUserId,
     int MatchId,
     string ClaimText,
-    string CreatorSideText,
-    string TakerSideText,
     decimal StakeAmountCc);
 
 public sealed record AcceptChallengeCommand(int ChallengeId, int TakerUserId);

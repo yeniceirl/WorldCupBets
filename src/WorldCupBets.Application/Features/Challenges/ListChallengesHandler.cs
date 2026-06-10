@@ -10,6 +10,6 @@ public sealed class ListChallengesHandler
         CancellationToken cancellationToken)
     {
         var challenges = await challengeRepository.ListByMatchAsync(query.MatchId, cancellationToken);
-        return challenges.Select(ChallengeDto.FromEntity).ToArray();
+        return challenges.Select(challenge => ChallengeDto.FromEntity(challenge)).ToArray();
     }
 }

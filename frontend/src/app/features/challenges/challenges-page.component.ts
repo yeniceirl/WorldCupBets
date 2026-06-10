@@ -89,6 +89,14 @@ import { ChallengesService } from "./challenges.service";
 												<span class="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200">Winner: {{ getWinnerName(challenge) }}</span>
 											}
 										</div>
+										<div class="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
+											<span class="rounded-full bg-sky-50 px-3 py-1 text-sky-700 dark:bg-sky-950 dark:text-sky-200">{{ getChallengeMatchLabel(challenge) }}</span>
+											@if (challenge.match.stage) {
+												<span class="rounded-full bg-slate-50 px-3 py-1 text-slate-600 dark:bg-slate-900 dark:text-slate-300">{{ challenge.match.stage }}</span>
+											}
+											<span class="rounded-full bg-slate-50 px-3 py-1 text-slate-600 dark:bg-slate-900 dark:text-slate-300">{{ formatMatchStartsAt(challenge.match.startsAtUtc) }}</span>
+											<span class="rounded-full bg-slate-50 px-3 py-1 text-slate-600 dark:bg-slate-900 dark:text-slate-300">Result: {{ getMatchResultLabel(challenge) }}</span>
+										</div>
 										<h2 class="mt-3 text-xl font-black text-slate-950 dark:text-white">{{ challenge.claimText }}</h2>
 										<div class="mt-3 grid gap-2 text-sm text-slate-600 dark:text-slate-300 sm:grid-cols-2">
 											<p class="rounded-xl px-3 py-2" [class]="getPositionCardClasses(challenge, 'Creator')"><span class="font-black" [class]="getPositionLabelClasses(challenge, 'Creator')">For the claim</span><br />{{ getPositionName(challenge, "Creator") }}</p>
@@ -236,6 +244,30 @@ export class ChallengesPageComponent {
 	}
 	getMatchLabel(match: MatchListItem): string {
 		return `${match.homeTeamName} vs ${match.awayTeamName}`;
+	}
+	getChallengeMatchLabel(challenge: MatchChallenge): string {
+		return challenge.match.homeTeamName && challenge.match.awayTeamName
+			? `${challenge.match.homeTeamName} vs ${challenge.match.awayTeamName}`
+			: `Match #${challenge.matchId}`;
+	}
+	formatMatchStartsAt(startsAtUtc: string): string {
+		const startsAt = new Date(startsAtUtc);
+		return Number.isNaN(startsAt.getTime())
+			? "Date TBD"
+			: startsAt.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+	}
+	getMatchResultLabel(challenge: MatchChallenge): string {
+		if (!challenge.match.officialResult) {
+			return "Not recorded";
+		}
+
+		if (challenge.match.officialResult === "Draw") {
+			return "Draw";
+		}
+
+		return challenge.match.officialResult === "Home"
+			? `${challenge.match.homeTeamName} won`
+			: `${challenge.match.awayTeamName} won`;
 	}
 	getPositionName(challenge: MatchChallenge, side: ChallengeSide): string {
 		return challenge.positions.find((position) => position.side === side)?.displayName || "Waiting for challenger";

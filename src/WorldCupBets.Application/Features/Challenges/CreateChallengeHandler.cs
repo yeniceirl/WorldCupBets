@@ -65,6 +65,6 @@ public sealed class CreateChallengeHandler
         await userRepository.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
-        return Result<ChallengeMutationResultDto>.Success(new ChallengeMutationResultDto(ChallengeDto.FromEntity(challenge), user.CurrentBalanceCc));
+        return Result<ChallengeMutationResultDto>.Success(new ChallengeMutationResultDto(ChallengeDto.FromEntity(challenge, match), user.CurrentBalanceCc));
     }
 }

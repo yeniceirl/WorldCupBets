@@ -10,6 +10,7 @@ public sealed class MatchChallengeRepository(AppDbContext dbContext) : IMatchCha
     {
         return await dbContext.MatchChallenges
             .AsNoTracking()
+            .Include(matchChallenge => matchChallenge.Match)
             .Include(matchChallenge => matchChallenge.Positions)
             .ThenInclude(position => position.User)
             .Where(matchChallenge => matchChallenge.MatchId == matchId)
@@ -21,6 +22,7 @@ public sealed class MatchChallengeRepository(AppDbContext dbContext) : IMatchCha
     {
         return dbContext.MatchChallenges
             .AsNoTracking()
+            .Include(matchChallenge => matchChallenge.Match)
             .Include(matchChallenge => matchChallenge.Positions)
             .ThenInclude(position => position.User)
             .SingleOrDefaultAsync(matchChallenge => matchChallenge.Id == id, cancellationToken);
@@ -29,6 +31,7 @@ public sealed class MatchChallengeRepository(AppDbContext dbContext) : IMatchCha
     public Task<MatchChallenge?> GetForUpdateAsync(int id, CancellationToken cancellationToken = default)
     {
         return dbContext.MatchChallenges
+            .Include(matchChallenge => matchChallenge.Match)
             .Include(matchChallenge => matchChallenge.Positions)
             .ThenInclude(position => position.User)
             .SingleOrDefaultAsync(matchChallenge => matchChallenge.Id == id, cancellationToken);

@@ -10,6 +10,7 @@ export interface ChallengePosition {
 export interface MatchChallenge {
 	id: number;
 	matchId: number;
+	match: ChallengeMatch;
 	claimText: string;
 	stakeAmountCc: number;
 	status: ChallengeStatus;
@@ -20,6 +21,16 @@ export interface MatchChallenge {
 	voidedAtUtc: string | null;
 	expiredAtUtc: string | null;
 	positions: ReadonlyArray<ChallengePosition>;
+}
+export interface ChallengeMatch {
+	id: number;
+	stage: string;
+	homeTeamName: string;
+	awayTeamName: string;
+	startsAtUtc: string;
+	venue: string;
+	officialResult: "Home" | "Draw" | "Away" | null;
+	isSettled: boolean;
 }
 export interface CreateChallengeRequest {
 	matchId: number;

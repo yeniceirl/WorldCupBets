@@ -41,6 +41,14 @@ export const appRoutes: Routes = [
 			),
 	},
 	{
+		path: "challenges",
+		canActivate: [authGuard],
+		loadComponent: () =>
+			import("./features/challenges/challenges-page.component").then(
+				(m) => m.ChallengesPageComponent,
+			),
+	},
+	{
 		path: "leaderboard",
 		canActivate: [authGuard],
 		loadComponent: () =>

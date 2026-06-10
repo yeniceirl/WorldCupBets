@@ -5,7 +5,7 @@ import { AuthStateService } from "../../core/auth/auth-state.service";
 import { formatCopaCoin } from "../../shared/copa-coin-format";
 import { MatchesService } from "../matches/matches.service";
 import type { CurrentUserSummary, MatchListItem } from "../matches/matches.models";
-import type { ChallengeSide, MatchChallenge } from "./challenges.models";
+import type { ChallengeSide, ChallengeStatus, MatchChallenge } from "./challenges.models";
 import { ChallengesService } from "./challenges.service";
 
 @Component({
@@ -16,7 +16,7 @@ import { ChallengesService } from "./challenges.service";
 				<div class="grid gap-5 sm:grid-cols-[1fr_auto] sm:items-center">
 					<div>
 						<p class="text-sm font-bold uppercase tracking-[0.24em] text-sky-700 dark:text-sky-300">Custom challenges</p>
-						<h1 class="mt-2 text-4xl font-black tracking-tight text-slate-950 dark:text-white">Open a match reto</h1>
+						<h1 class="mt-2 text-4xl font-black tracking-tight text-slate-950 dark:text-white">Open a match challenge</h1>
 						<p class="mt-3 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">Create free-text CopaCoin challenges for a match, accept the opposite side, and keep your wallet in sync as stakes move through escrow.</p>
 					</div>
 				</div>
@@ -73,25 +73,30 @@ import { ChallengesService } from "./challenges.service";
 
 				@if (challenges().length === 0) {
 					<section class="grid gap-5 rounded-2xl border border-dashed border-slate-300 bg-white/80 p-8 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-950/60 dark:text-slate-300 sm:grid-cols-[1fr_auto] sm:items-center" data-testid="challenges-empty">
-						<span>No custom challenges exist for this match yet. Create the first reto and escrow the opening stake.</span>
+						<span>No custom challenges exist for this match yet. Create the first challenge and escrow the opening stake.</span>
 						<img class="h-28 w-28 object-contain" src="/assets/brand/empty-state-mascot.webp" alt="Empty challenges mascot" />
 					</section>
 				} @else {
 					<section class="grid gap-4" data-testid="challenges-list">
 						@for (challenge of challenges(); track challenge.id) {
-							<article class="rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm dark:border-slate-700 dark:bg-slate-950/80" [attr.data-testid]="'challenge-card-' + challenge.id">
+							<article class="overflow-hidden rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm dark:border-slate-700 dark:bg-slate-950/80" [attr.data-testid]="'challenge-card-' + challenge.id">
 								<div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
 									<div class="min-w-0">
 										<div class="flex flex-wrap gap-2 text-xs font-bold uppercase tracking-wide">
-											<span class="rounded-full bg-slate-100 px-3 py-1 text-slate-700 dark:bg-slate-800 dark:text-slate-200">{{ challenge.status }}</span>
+											<span class="rounded-full bg-slate-100 px-3 py-1 text-slate-700 dark:bg-slate-800 dark:text-slate-200">{{ getStatusLabel(challenge.status) }}</span>
 											<span class="rounded-full bg-amber-50 px-3 py-1 text-amber-700 dark:bg-amber-950 dark:text-amber-200">{{ formatCopaCoin(challenge.stakeAmountCc) }} CC each</span>
+											@if (challenge.status === "Settled" && challenge.winnerSide) {
+												<span class="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200">Winner: {{ getWinnerLabel(challenge.winnerSide) }}</span>
+											}
 										</div>
 										<h2 class="mt-3 text-xl font-black text-slate-950 dark:text-white">{{ challenge.claimText }}</h2>
-										<p class="mt-2 text-sm text-slate-600 dark:text-slate-300">For the claim — {{ getPositionName(challenge, "Creator") }}</p>
-										<p class="text-sm text-slate-600 dark:text-slate-300">Against the claim — {{ getPositionName(challenge, "Taker") }}</p>
+										<div class="mt-3 grid gap-2 text-sm text-slate-600 dark:text-slate-300 sm:grid-cols-2">
+											<p class="rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-900"><span class="font-black text-slate-800 dark:text-slate-100">For the claim</span><br />{{ getPositionName(challenge, "Creator") }}</p>
+											<p class="rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-900"><span class="font-black text-slate-800 dark:text-slate-100">Against the claim</span><br />{{ getPositionName(challenge, "Taker") }}</p>
+										</div>
 									</div>
 									@if (challenge.status === "Open" && canAccept(challenge)) {
-										<button type="button" class="rounded-xl border border-emerald-600 bg-emerald-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60" [disabled]="submittingChallengeId() === challenge.id" (click)="acceptChallenge(challenge)" [attr.data-testid]="'challenge-accept-' + challenge.id">{{ submittingChallengeId() === challenge.id ? "Accepting..." : "Accept" }}</button>
+										<button type="button" class="rounded-xl border border-emerald-600 bg-emerald-600 px-4 py-3 text-sm font-black text-white shadow-lg shadow-emerald-900/10 transition hover:-translate-y-0.5 hover:bg-emerald-700 disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60" [disabled]="submittingChallengeId() === challenge.id" (click)="acceptChallenge(challenge)" [attr.data-testid]="'challenge-accept-' + challenge.id">{{ submittingChallengeId() === challenge.id ? "Joining..." : "Take the challenge" }}</button>
 									}
 									@if (canCancel(challenge)) {
 										<button type="button" class="rounded-xl border border-rose-300 px-4 py-3 text-sm font-bold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-rose-900 dark:text-rose-200 dark:hover:bg-rose-950" [disabled]="submittingChallengeId() === challenge.id" (click)="cancelChallenge(challenge)" [attr.data-testid]="'challenge-cancel-' + challenge.id">{{ submittingChallengeId() === challenge.id ? "Canceling..." : "Cancel" }}</button>
@@ -218,7 +223,7 @@ export class ChallengesPageComponent {
 	}
 
 	settleChallenge(challenge: MatchChallenge, winnerSide: ChallengeSide): void {
-		this.runLifecycleMutation(challenge.id, () => this.challengesService.settleChallenge(challenge.id, { winnerSide }), `Challenge settled for ${winnerSide.toLowerCase()} side.`);
+		this.runLifecycleMutation(challenge.id, () => this.challengesService.settleChallenge(challenge.id, { winnerSide }), `${this.getWinnerLabel(winnerSide)} won the challenge.`);
 	}
 	voidChallenge(challenge: MatchChallenge): void {
 		this.runLifecycleMutation(challenge.id, () => this.challengesService.voidChallenge(challenge.id), "Challenge voided and active stakes refunded.");
@@ -233,7 +238,19 @@ export class ChallengesPageComponent {
 		return `${match.homeTeamName} vs ${match.awayTeamName}`;
 	}
 	getPositionName(challenge: MatchChallenge, side: ChallengeSide): string {
-		return challenge.positions.find((position) => position.side === side)?.displayName || "Waiting for taker";
+		return challenge.positions.find((position) => position.side === side)?.displayName || "Waiting for challenger";
+	}
+	getStatusLabel(status: ChallengeStatus): string {
+		return {
+			Open: "Open",
+			Matched: "Matched",
+			Settled: "Settled",
+			Voided: "Voided",
+			Expired: "Expired",
+		}[status];
+	}
+	getWinnerLabel(side: ChallengeSide): string {
+		return side === "Creator" ? "Claim" : "Challenge taker";
 	}
 	toNumber(value: string): number {
 		const amount = Number(value);

@@ -18,6 +18,9 @@ public sealed class EndpointAuthorizationMetadataTests
     [
         "/api/matches/{id:int}/result",
         "/api/bets/champion/settlement",
+        "/api/challenges/{id:int}/settlement",
+        "/api/challenges/{id:int}/void",
+        "/api/challenges/{id:int}/expire",
         "/api/football-data/sync",
         "/api/football-data/players/sync",
         "/api/football-data/fixtures/group-stage/import"
@@ -73,6 +76,7 @@ public sealed class EndpointAuthorizationMetadataTests
         builder.Services.AddScoped<IUserRepository>(_ => throw new NotSupportedException("Endpoint metadata tests do not execute handlers."));
         builder.Services.AddScoped<IUserInvitationRepository>(_ => throw new NotSupportedException("Endpoint metadata tests do not execute handlers."));
         builder.Services.AddScoped<IRoleRepository>(_ => throw new NotSupportedException("Endpoint metadata tests do not execute handlers."));
+        builder.Services.AddScoped<IMatchChallengeRepository>(_ => throw new NotSupportedException("Endpoint metadata tests do not execute handlers."));
         builder.Services.AddScoped<IJwtTokenGenerator>(_ => throw new NotSupportedException("Endpoint metadata tests do not execute handlers."));
         var app = builder.Build();
 

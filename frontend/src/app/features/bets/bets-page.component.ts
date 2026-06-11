@@ -71,10 +71,12 @@ interface PlayerBetDefinition {
 					<div class="grid gap-4 lg:grid-cols-3">
 						<article class="rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm dark:border-slate-700 dark:bg-slate-950/80" data-testid="champion-market-card">
 							<p class="text-xs font-bold uppercase tracking-[0.2em] text-sky-700 dark:text-sky-300">Champion bet</p>
+							<p class="mt-2 text-sm text-slate-600 dark:text-slate-300">Stake: {{ formatCopaCoin(championMarket()!.stakeAmountCc) }} CC</p>
 							<div class="mt-2 flex items-start justify-between gap-3">
 								<div class="min-w-0">
-									<p class="text-2xl font-black text-slate-950 dark:text-white">{{ championMarket()!.currentUserChampionTeamName ?? "Pending" }}</p>
-									<p class="mt-2 text-sm text-slate-600 dark:text-slate-300">Stake: {{ formatCopaCoin(championMarket()!.stakeAmountCc) }} CC</p>
+									@if (championMarket()!.currentUserChampionTeamName) {
+										<p class="text-2xl font-black text-slate-950 dark:text-white">{{ championMarket()!.currentUserChampionTeamName }}</p>
+									}
 									@if (championMarket()!.currentUserChampionTeamName) {
 										<p class="mt-4 inline-flex rounded-full bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700" data-testid="champion-current-pick">Selected</p>
 									}
@@ -102,11 +104,11 @@ interface PlayerBetDefinition {
 						@for (definition of playerBetDefinitions; track definition.category) {
 							<article class="rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm dark:border-slate-700 dark:bg-slate-950/80" [attr.data-testid]="'special-player-bet-' + definition.category">
 								<p class="text-xs font-bold uppercase tracking-[0.2em] text-sky-700 dark:text-sky-300">{{ definition.label }}</p>
+								<p class="mt-2 text-sm text-slate-600 dark:text-slate-300">Stake: {{ formatCopaCoin(specialMarket()!.stakeAmountCc) }} CC</p>
 								@if (getSpecialPlayerBet(definition.category); as existingBet) {
 									<div class="mt-2 flex items-start justify-between gap-3">
 										<div class="min-w-0">
 											<p class="text-2xl font-black text-slate-950 dark:text-white">{{ existingBet.playerName }}</p>
-											<p class="mt-2 text-sm text-slate-600 dark:text-slate-300">Stake: {{ formatCopaCoin(existingBet.stakeAmountCc) }} CC</p>
 											<p class="mt-4 inline-flex rounded-full bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700">Selected</p>
 										</div>
 										@if (existingBet.playerPhotoUrl) {

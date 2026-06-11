@@ -11,10 +11,9 @@ public sealed class ApiSportsPlayerSquadProvider(HttpClient httpClient, ApiSport
 {
     public const string Provider = "api-sports";
 
-    // API-Sports' free plan throttles to roughly 10 requests/minute. Pacing requests at this
-    // interval keeps a sync run under that ceiling so it completes in one pass instead of
-    // tripping the per-minute limit (and the abort-on-429 safeguard) partway through.
-    private static readonly TimeSpan MinRequestInterval = TimeSpan.FromSeconds(7);
+    // API-Sports' free plan throttles to roughly 10 requests/minute. A small fixed pacing still
+    // reduces burst risk, while keeping sync duration short enough to complete behind the proxy.
+    private static readonly TimeSpan MinRequestInterval = TimeSpan.FromSeconds(5);
 
     private DateTime? lastRequestAtUtc;
 

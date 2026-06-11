@@ -20,6 +20,10 @@ public sealed class GetLeaderboardHandlerTests
                 CreateUser(1, "Ada", 1200),
                 CreateUser(2, "Grace", 900),
                 CreateUser(3, "Linus", 1500)),
+            new StubMatchBetRepository(),
+            new StubMatchChallengeRepository(),
+            new StubTournamentPickRepository(),
+            new StubTournamentSettlementRepository(TournamentSettlement.CreateSingleton()),
             CancellationToken.None);
 
         Assert.Collection(result,
@@ -28,18 +32,24 @@ public sealed class GetLeaderboardHandlerTests
                 Assert.Equal(1, item.Rank);
                 Assert.Equal("Linus", item.DisplayName);
                 Assert.Equal(1500, item.CurrentBalanceCc);
+                Assert.Equal(0, item.PendingStakeAmountCc);
+                Assert.Equal(1500, item.AvailableBalanceCc);
             },
             item =>
             {
                 Assert.Equal(2, item.Rank);
                 Assert.Equal("Ada", item.DisplayName);
                 Assert.Equal(1200, item.CurrentBalanceCc);
+                Assert.Equal(0, item.PendingStakeAmountCc);
+                Assert.Equal(1200, item.AvailableBalanceCc);
             },
             item =>
             {
                 Assert.Equal(3, item.Rank);
                 Assert.Equal("Grace", item.DisplayName);
                 Assert.Equal(900, item.CurrentBalanceCc);
+                Assert.Equal(0, item.PendingStakeAmountCc);
+                Assert.Equal(900, item.AvailableBalanceCc);
             });
     }
 
@@ -51,11 +61,53 @@ public sealed class GetLeaderboardHandlerTests
             new StubUserRepository(
                 CreateUser(1, "Ada", 1000),
                 CreateUser(2, "Grace", 1000)),
+            new StubMatchBetRepository(),
+            new StubMatchChallengeRepository(),
+            new StubTournamentPickRepository(),
+            new StubTournamentSettlementRepository(TournamentSettlement.CreateSingleton()),
             CancellationToken.None);
 
         Assert.Equal(2, result.Count);
         Assert.All(result, item => Assert.Equal(1000, item.CurrentBalanceCc));
         Assert.Equal(new[] { 1, 2 }, result.Select(item => item.Rank));
+    }
+
+    [Fact]
+    public async Task Handle_Shows_Pending_Stake_Separately_From_Realized_Balance()
+    {
+        var ada = CreateUser(1, "Ada", 945);
+        var grace = CreateUser(2, "Grace", 990);
+        var match = Match.Create(MatchPhase.GroupStage, "Argentina", "Japan", DateTime.UtcNow.AddDays(1), "MetLife Stadium");
+        SetEntityId(match, 20);
+
+        var result = await GetLeaderboardHandler.Handle(
+            new GetLeaderboardQuery(),
+            new StubUserRepository(ada, grace),
+            new StubMatchBetRepository(CreateBet(ada, match, MatchBetSelection.Home)),
+            new StubMatchChallengeRepository((ada.Id, 25m)),
+            new StubTournamentPickRepository(
+                TournamentPick.CreateChampion(ada.Id, "Argentina", 50, DateTime.UtcNow),
+                TournamentPick.CreatePlayer(ada.Id, TournamentPickCategory.TopScorer, "Lionel Messi", "34146370", 50, DateTime.UtcNow)),
+            new StubTournamentSettlementRepository(TournamentSettlement.CreateSingleton()),
+            CancellationToken.None);
+
+        Assert.Collection(result,
+            item =>
+            {
+                Assert.Equal(1, item.Rank);
+                Assert.Equal("Ada", item.DisplayName);
+                Assert.Equal(1075, item.CurrentBalanceCc);
+                Assert.Equal(130, item.PendingStakeAmountCc);
+                Assert.Equal(945, item.AvailableBalanceCc);
+            },
+            item =>
+            {
+                Assert.Equal(2, item.Rank);
+                Assert.Equal("Grace", item.DisplayName);
+                Assert.Equal(990, item.CurrentBalanceCc);
+                Assert.Equal(0, item.PendingStakeAmountCc);
+                Assert.Equal(990, item.AvailableBalanceCc);
+            });
     }
 
     [Fact]
@@ -81,6 +133,12 @@ public sealed class GetLeaderboardHandlerTests
         var result = await GetLeaderboardHandler.Handle(
             new GetLeaderboardQuery(),
             userRepository,
+            new StubMatchBetRepository(
+                CreateBet(winner, match, MatchBetSelection.Home),
+                CreateBet(loser, match, MatchBetSelection.Away)),
+            new StubMatchChallengeRepository(),
+            new StubTournamentPickRepository(),
+            new StubTournamentSettlementRepository(TournamentSettlement.CreateSingleton()),
             CancellationToken.None);
 
         Assert.True(settlement.IsSuccess);
@@ -90,12 +148,52 @@ public sealed class GetLeaderboardHandlerTests
                 Assert.Equal(1, item.Rank);
                 Assert.Equal("Winner", item.DisplayName);
                 Assert.Equal(1005, item.CurrentBalanceCc);
+                Assert.Equal(0, item.PendingStakeAmountCc);
+                Assert.Equal(1005, item.AvailableBalanceCc);
             },
             item =>
             {
                 Assert.Equal(2, item.Rank);
                 Assert.Equal("Loser", item.DisplayName);
                 Assert.Equal(995, item.CurrentBalanceCc);
+                Assert.Equal(0, item.PendingStakeAmountCc);
+                Assert.Equal(995, item.AvailableBalanceCc);
+            });
+    }
+
+    [Fact]
+    public async Task Handle_Keeps_Player_Picks_Pending_When_Champion_Is_Settled()
+    {
+        var ada = CreateUser(1, "Ada", 900);
+        var grace = CreateUser(2, "Grace", 900);
+        var settlement = TournamentSettlement.CreateSingleton();
+        settlement.MarkChampionSettled("Argentina", DateTime.UtcNow, 0);
+
+        var result = await GetLeaderboardHandler.Handle(
+            new GetLeaderboardQuery(),
+            new StubUserRepository(ada, grace),
+            new StubMatchBetRepository(),
+            new StubMatchChallengeRepository(),
+            new StubTournamentPickRepository(
+                TournamentPick.CreateChampion(ada.Id, "Argentina", 50, DateTime.UtcNow),
+                TournamentPick.CreatePlayer(ada.Id, TournamentPickCategory.BestPlayer, "Lionel Messi", null, 50, DateTime.UtcNow),
+                TournamentPick.CreatePlayer(ada.Id, TournamentPickCategory.TopScorer, "Kylian Mbappe", null, 50, DateTime.UtcNow)),
+            new StubTournamentSettlementRepository(settlement),
+            CancellationToken.None);
+
+        Assert.Collection(result,
+            item =>
+            {
+                Assert.Equal("Ada", item.DisplayName);
+                Assert.Equal(1000, item.CurrentBalanceCc);
+                Assert.Equal(100, item.PendingStakeAmountCc);
+                Assert.Equal(900, item.AvailableBalanceCc);
+            },
+            item =>
+            {
+                Assert.Equal("Grace", item.DisplayName);
+                Assert.Equal(900, item.CurrentBalanceCc);
+                Assert.Equal(0, item.PendingStakeAmountCc);
             });
     }
 
@@ -124,7 +222,7 @@ public sealed class GetLeaderboardHandlerTests
     private static void SetProperty(object target, string propertyName, object? value)
     {
         var property = target.GetType().GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-        property!.SetValue(target, value);
+        property!.SetValue(target, property.PropertyType == typeof(decimal) && value is not null ? Convert.ToDecimal(value) : value);
     }
 
     private sealed class StubUserRepository(params User[] users) : IUserRepository
@@ -225,7 +323,87 @@ public sealed class GetLeaderboardHandlerTests
             return Task.FromResult<IReadOnlyList<MatchBet>>(matchBets.Where(matchBet => matchBet.MatchId == matchId).ToArray());
         }
 
+        public Task<IReadOnlyDictionary<int, decimal>> ListPendingStakeAmountsByUserAsync(CancellationToken cancellationToken = default)
+        {
+            var stakesByUser = matchBets
+                .Where(matchBet => matchBet.Match.SettledAtUtc is null)
+                .GroupBy(matchBet => matchBet.UserId)
+                .ToDictionary(group => group.Key, group => group.Sum(matchBet => matchBet.StakeAmountCc));
+
+            return Task.FromResult<IReadOnlyDictionary<int, decimal>>(stakesByUser);
+        }
+
         public Task AddAsync(MatchBet matchBet, CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+    }
+
+    private sealed class StubMatchChallengeRepository(params (int UserId, decimal StakeAmountCc)[] activeStakes) : IMatchChallengeRepository
+    {
+        public Task<IReadOnlyList<MatchChallenge>> ListByMatchAsync(int matchId, CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<MatchChallenge?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<MatchChallenge?> GetForUpdateAsync(int id, CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<IReadOnlyDictionary<int, decimal>> ListActiveStakeAmountsByUserAsync(CancellationToken cancellationToken = default)
+        {
+            var stakesByUser = activeStakes
+                .GroupBy(stake => stake.UserId)
+                .ToDictionary(group => group.Key, group => group.Sum(stake => stake.StakeAmountCc));
+
+            return Task.FromResult<IReadOnlyDictionary<int, decimal>>(stakesByUser);
+        }
+
+        public Task AddAsync(MatchChallenge matchChallenge, CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+    }
+
+    private sealed class StubTournamentPickRepository(params TournamentPick[] tournamentPicks) : ITournamentPickRepository
+    {
+        public Task<TournamentPick?> GetByUserAndCategoryAsync(int userId, TournamentPickCategory category, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(tournamentPicks.SingleOrDefault(tournamentPick => tournamentPick.UserId == userId && tournamentPick.Category == category));
+        }
+
+        public Task<TournamentPick?> GetTrackedByUserAndCategoryAsync(int userId, TournamentPickCategory category, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(tournamentPicks.SingleOrDefault(tournamentPick => tournamentPick.UserId == userId && tournamentPick.Category == category));
+        }
+
+        public Task<IReadOnlyList<TournamentPick>> ListByUserAndCategoriesAsync(int userId, IReadOnlyCollection<TournamentPickCategory> categories, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<TournamentPick>>(tournamentPicks.Where(tournamentPick => tournamentPick.UserId == userId && categories.Contains(tournamentPick.Category)).ToArray());
+        }
+
+        public Task<IReadOnlyList<TournamentPick>> ListChampionForSettlementAsync(CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<IReadOnlyDictionary<int, decimal>> ListStakeAmountsByUserAsync(IReadOnlyCollection<TournamentPickCategory> categories, CancellationToken cancellationToken = default)
+        {
+            var stakesByUser = tournamentPicks
+                .Where(tournamentPick => categories.Contains(tournamentPick.Category))
+                .GroupBy(tournamentPick => tournamentPick.UserId)
+                .ToDictionary(group => group.Key, group => group.Sum(tournamentPick => tournamentPick.StakeAmountCc));
+
+            return Task.FromResult<IReadOnlyDictionary<int, decimal>>(stakesByUser);
+        }
+
+        public Task AddAsync(TournamentPick pick, CancellationToken cancellationToken = default)
         {
             throw new NotSupportedException();
         }
@@ -236,6 +414,11 @@ public sealed class GetLeaderboardHandlerTests
         public Task<TournamentSettlement> GetOrCreateSingletonAsync(CancellationToken cancellationToken = default)
         {
             return Task.FromResult(settlement);
+        }
+
+        public Task<bool> IsChampionSettledAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(settlement.ChampionSettledAtUtc.HasValue);
         }
     }
 }

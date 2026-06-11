@@ -42,8 +42,13 @@ The compose file runs:
 | UI port | `18888` |
 | OTLP/gRPC internal port | `18889` |
 | OTLP/HTTP internal port | `18890` |
+| Forwarded headers | `ASPIRE_DASHBOARD_FORWARDEDHEADERS_ENABLED=true` |
 
 Expose only the UI through Dokploy. Keep OTLP ports internal so only app containers can send telemetry.
+
+Do not publish `18888:18888` unless you intentionally want the raw HTTP port available from the internet. Prefer Dokploy's HTTPS domain proxy.
+
+Forwarded headers are required when Dokploy terminates HTTPS and forwards traffic to the dashboard over HTTP. Without them, Aspire Dashboard can generate or validate URLs using the wrong scheme/host.
 
 ## Login
 

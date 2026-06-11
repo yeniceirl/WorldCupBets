@@ -11,10 +11,10 @@ public sealed class TournamentSettlementConfiguration : IEntityTypeConfiguration
         builder.ToTable("tournament_settlements");
         builder.HasKey(settlement => settlement.Id);
         builder.Property(settlement => settlement.Id).ValueGeneratedNever();
-        builder.Property(settlement => settlement.ChampionJackpotCc).IsRequired();
+        builder.Property(settlement => settlement.ChampionJackpotCc).HasColumnType("numeric(18,2)").IsRequired();
         builder.Property(settlement => settlement.ChampionTeamName).HasMaxLength(100);
         builder.Property(settlement => settlement.ChampionSettledAtUtc);
-        builder.Property(settlement => settlement.UndistributedJackpotCc).IsRequired();
+        builder.Property(settlement => settlement.UndistributedJackpotCc).HasColumnType("numeric(18,2)").IsRequired();
         builder.Property(settlement => settlement.Version).IsConcurrencyToken().IsRequired();
     }
 }

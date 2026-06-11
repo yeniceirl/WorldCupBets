@@ -166,7 +166,7 @@ public sealed class PlaceMatchBetHandlerTests
     private static void SetProperty(object target, string propertyName, object? value)
     {
         var property = target.GetType().GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-        property!.SetValue(target, value);
+        property!.SetValue(target, property.PropertyType == typeof(decimal) && value is not null ? Convert.ToDecimal(value) : value);
     }
 
     private sealed class StubUserRepository(params User[] users) : IUserRepository
@@ -276,6 +276,11 @@ public sealed class PlaceMatchBetHandlerTests
         public Task<IReadOnlyList<MatchBet>> ListByMatchForSettlementAsync(int matchId, CancellationToken cancellationToken = default)
         {
             return Task.FromResult<IReadOnlyList<MatchBet>>(Stored.Where(matchBet => matchBet.MatchId == matchId).ToArray());
+        }
+
+        public Task<IReadOnlyDictionary<int, decimal>> ListPendingStakeAmountsByUserAsync(CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
         }
 
         public Task AddAsync(MatchBet matchBet, CancellationToken cancellationToken = default)

@@ -32,6 +32,16 @@ public sealed class MatchBetRepository(AppDbContext dbContext) : IMatchBetReposi
             .ToArrayAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyDictionary<int, decimal>> ListPendingStakeAmountsByUserAsync(CancellationToken cancellationToken = default)
+    {
+        return await dbContext.Set<MatchBet>()
+            .AsNoTracking()
+            .Where(matchBet => matchBet.Match.SettledAtUtc == null)
+            .GroupBy(matchBet => matchBet.UserId)
+            .Select(group => new { UserId = group.Key, StakeAmountCc = group.Sum(matchBet => matchBet.StakeAmountCc) })
+            .ToDictionaryAsync(item => item.UserId, item => item.StakeAmountCc, cancellationToken);
+    }
+
     public Task AddAsync(MatchBet matchBet, CancellationToken cancellationToken = default)
     {
         return dbContext.Set<MatchBet>().AddAsync(matchBet, cancellationToken).AsTask();

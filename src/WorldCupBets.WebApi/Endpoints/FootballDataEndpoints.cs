@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Wolverine;
+using WorldCupBets.Application.Abstractions;
 using WorldCupBets.Application.Features.FootballData;
 
 namespace WorldCupBets.WebApi.Endpoints;
@@ -23,6 +24,22 @@ public static class FootballDataEndpoints
         .Produces(StatusCodes.Status401Unauthorized)
         .Produces(StatusCodes.Status403Forbidden);
 
+        group.MapGet("/players/search", async (string query, IMessageBus messageBus, CancellationToken cancellationToken) =>
+        {
+            if (query.Trim().Length < 3)
+            {
+                return Results.Ok(Array.Empty<PlayerSearchResultDto>());
+            }
+
+            var result = await messageBus.InvokeAsync<IReadOnlyList<PlayerSearchResultDto>>(new SearchPlayersQuery(query), cancellationToken);
+            return Results.Ok(result);
+        })
+        .WithName("SearchPlayers")
+        .WithSummary("Search soccer players from the external provider for tournament special bet autocomplete.")
+        .Produces<IReadOnlyList<PlayerSearchResultDto>>(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status401Unauthorized)
+        .Produces(StatusCodes.Status403Forbidden);
+
         group.MapPost("/sync", [Authorize(Policy = "Admin")] async (IMessageBus messageBus, CancellationToken cancellationToken) =>
         {
             var result = await messageBus.InvokeAsync<SyncFootballDataResultDto>(new SyncFootballDataCommand(), cancellationToken);
@@ -31,6 +48,17 @@ public static class FootballDataEndpoints
         .WithName("SyncFootballData")
         .WithSummary("Synchronize external football data into the local cache snapshot.")
         .Produces<SyncFootballDataResultDto>(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status401Unauthorized)
+        .Produces(StatusCodes.Status403Forbidden);
+
+        group.MapPost("/players/sync", [Authorize(Policy = "Admin")] async (IMessageBus messageBus, CancellationToken cancellationToken) =>
+        {
+            var result = await messageBus.InvokeAsync<SyncPlayerSquadsResultDto>(new SyncPlayerSquadsCommand(), cancellationToken);
+            return Results.Ok(result);
+        })
+        .WithName("SyncPlayerSquads")
+        .WithSummary("Synchronize national-team squads from the external provider into the persisted player index.")
+        .Produces<SyncPlayerSquadsResultDto>(StatusCodes.Status200OK)
         .Produces(StatusCodes.Status401Unauthorized)
         .Produces(StatusCodes.Status403Forbidden);
 

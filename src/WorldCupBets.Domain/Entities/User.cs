@@ -4,8 +4,8 @@ namespace WorldCupBets.Domain.Entities;
 
 public sealed class User : Entity
 {
-    public const int InitialBalanceCc = 1000;
-    public const int DeadRescueAmountCc = 100;
+    public const decimal InitialBalanceCc = 1000m;
+    public const decimal DeadRescueAmountCc = 100m;
     public const int MaxDeadRescuesPerTournament = 2;
 
     private User()
@@ -26,11 +26,11 @@ public sealed class User : Entity
 
     public string DisplayName { get; private set; } = string.Empty;
 
-    public int CurrentBalanceCc { get; private set; } = InitialBalanceCc;
+    public decimal CurrentBalanceCc { get; private set; } = InitialBalanceCc;
 
     public int RescueCount { get; private set; }
 
-    public int RescueDebtCc { get; private set; }
+    public decimal RescueDebtCc { get; private set; }
 
     public int Version { get; private set; }
 
@@ -41,12 +41,12 @@ public sealed class User : Entity
         return new User(googleSubject, email, displayName);
     }
 
-    public bool CanAfford(int amountCc)
+    public bool CanAfford(decimal amountCc)
     {
         return amountCc > 0 && CurrentBalanceCc >= amountCc;
     }
 
-    public void DeductBalance(int amountCc)
+    public void DeductBalance(decimal amountCc)
     {
         if (amountCc <= 0)
         {
@@ -61,7 +61,7 @@ public sealed class User : Entity
         CurrentBalanceCc -= amountCc;
     }
 
-    public void CreditBalance(int amountCc)
+    public void CreditBalance(decimal amountCc)
     {
         if (amountCc <= 0)
         {

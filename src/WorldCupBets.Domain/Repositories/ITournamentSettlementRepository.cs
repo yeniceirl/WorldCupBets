@@ -5,4 +5,6 @@ namespace WorldCupBets.Domain.Repositories;
 public interface ITournamentSettlementRepository
 {
     Task<TournamentSettlement> GetOrCreateSingletonAsync(CancellationToken cancellationToken = default);
+
+    Task<bool> IsChampionSettledAsync(CancellationToken cancellationToken = default);
 }

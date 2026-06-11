@@ -111,17 +111,17 @@ public sealed class Match : Entity
         };
     }
 
-    public int GetStakeAmountCc()
+    public decimal GetStakeAmountCc()
     {
         return Phase switch
         {
-            MatchPhase.GroupStage => 5,
-            MatchPhase.RoundOf32 => 10,
-            MatchPhase.RoundOf16 => 15,
-            MatchPhase.Quarterfinals => 20,
-            MatchPhase.Semifinals => 30,
-            MatchPhase.ThirdPlace => 20,
-            MatchPhase.Final => 40,
+            MatchPhase.GroupStage => 5m,
+            MatchPhase.RoundOf32 => 10m,
+            MatchPhase.RoundOf16 => 15m,
+            MatchPhase.Quarterfinals => 20m,
+            MatchPhase.Semifinals => 30m,
+            MatchPhase.ThirdPlace => 20m,
+            MatchPhase.Final => 40m,
             _ => throw new InvalidOperationException($"Unsupported match phase '{Phase}'.")
         };
     }

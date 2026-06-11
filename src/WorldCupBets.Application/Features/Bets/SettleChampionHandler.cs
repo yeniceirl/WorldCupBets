@@ -7,9 +7,11 @@ namespace WorldCupBets.Application.Features.Bets;
 
 public sealed class SettleChampionHandler
 {
+    private const decimal CopaCoinScale = 100m;
+
     public static async Task<Result<SettleChampionResultDto>> Handle(
         SettleChampionCommand command,
-        IChampionBetRepository championBetRepository,
+        ITournamentPickRepository tournamentPickRepository,
         ITournamentSettlementRepository tournamentSettlementRepository,
         IUserRepository userRepository,
         IApplicationTransactionFactory transactionFactory,
@@ -45,18 +47,18 @@ public sealed class SettleChampionHandler
                 settlement.ChampionSettledAtUtc.Value));
         }
 
-        var bets = await championBetRepository.ListForSettlementAsync(cancellationToken);
+        var bets = await tournamentPickRepository.ListChampionForSettlementAsync(cancellationToken);
         var winners = bets
-            .Where(bet => string.Equals(bet.TeamName, championTeamName, StringComparison.OrdinalIgnoreCase))
+            .Where(bet => string.Equals(bet.SelectedText, championTeamName, StringComparison.OrdinalIgnoreCase))
             .ToArray();
         var losers = bets
-            .Where(bet => !string.Equals(bet.TeamName, championTeamName, StringComparison.OrdinalIgnoreCase))
+            .Where(bet => !string.Equals(bet.SelectedText, championTeamName, StringComparison.OrdinalIgnoreCase))
             .ToArray();
 
         var losingStakePoolCc = losers.Sum(bet => bet.StakeAmountCc);
         var distributableProfitPoolCc = checked(losingStakePoolCc + settlement.ChampionJackpotCc);
-        var profitSharePerWinnerCc = winners.Length == 0 ? 0 : distributableProfitPoolCc / winners.Length;
-        var undistributedJackpotCc = winners.Length == 0 ? distributableProfitPoolCc : distributableProfitPoolCc % winners.Length;
+        var profitSharePerWinnerCc = winners.Length == 0 ? 0m : RoundDownToCents(distributableProfitPoolCc / winners.Length);
+        var undistributedJackpotCc = winners.Length == 0 ? distributableProfitPoolCc : distributableProfitPoolCc - (profitSharePerWinnerCc * winners.Length);
 
         foreach (var winner in winners)
         {
@@ -79,5 +81,10 @@ public sealed class SettleChampionHandler
             PlaceChampionBetHandler.ChampionBetStakeAmountCc + profitSharePerWinnerCc,
             settlement.UndistributedJackpotCc,
             settlement.ChampionSettledAtUtc ?? nowUtc));
+    }
+
+    private static decimal RoundDownToCents(decimal amountCc)
+    {
+        return Math.Floor(amountCc * CopaCoinScale) / CopaCoinScale;
     }
 }

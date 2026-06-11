@@ -8,7 +8,7 @@ public sealed class MatchBet : Entity
     {
     }
 
-    private MatchBet(int userId, int matchId, MatchBetSelection selection, int stakeAmountCc, DateTime placedAtUtc)
+    private MatchBet(int userId, int matchId, MatchBetSelection selection, decimal stakeAmountCc, DateTime placedAtUtc)
     {
         UserId = userId;
         MatchId = matchId;
@@ -27,13 +27,13 @@ public sealed class MatchBet : Entity
 
     public MatchBetSelection Selection { get; private set; }
 
-    public int StakeAmountCc { get; private set; }
+    public decimal StakeAmountCc { get; private set; }
 
     public DateTime PlacedAtUtc { get; private set; }
 
     public int Version { get; private set; }
 
-    public static MatchBet Create(int userId, int matchId, MatchBetSelection selection, int stakeAmountCc, DateTime placedAtUtc)
+    public static MatchBet Create(int userId, int matchId, MatchBetSelection selection, decimal stakeAmountCc, DateTime placedAtUtc)
     {
         if (stakeAmountCc <= 0)
         {

@@ -22,36 +22,6 @@ namespace WorldCupBets.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("WorldCupBets.Domain.Entities.ChampionBet", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("PlacedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("StakeAmountCc")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("TeamName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId")
-                        .IsUnique();
-
-                    b.ToTable("champion_bets", (string)null);
-                });
-
             modelBuilder.Entity("WorldCupBets.Domain.Entities.ExternalFootballGroupStanding", b =>
                 {
                     b.Property<int>("Id")
@@ -200,6 +170,64 @@ namespace WorldCupBets.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("external_football_matches", (string)null);
+                });
+
+            modelBuilder.Entity("WorldCupBets.Domain.Entities.ExternalFootballPlayer", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ExternalId")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("PhotoUrl")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("Position")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("ProviderName")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<DateTime>("SyncedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TeamExternalId")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("TeamName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NormalizedName");
+
+                    b.HasIndex("ProviderName", "ExternalId")
+                        .IsUnique();
+
+                    b.ToTable("external_football_players", (string)null);
                 });
 
             modelBuilder.Entity("WorldCupBets.Domain.Entities.ExternalFootballStadium", b =>
@@ -469,8 +497,8 @@ namespace WorldCupBets.Infrastructure.Persistence.Migrations
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)");
 
-                    b.Property<int>("StakeAmountCc")
-                        .HasColumnType("integer");
+                    b.Property<decimal>("StakeAmountCc")
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<int>("UserId")
                         .HasColumnType("integer");
@@ -487,6 +515,105 @@ namespace WorldCupBets.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("match_bets", (string)null);
+                });
+
+            modelBuilder.Entity("WorldCupBets.Domain.Entities.MatchChallenge", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ClaimText")
+                        .IsRequired()
+                        .HasMaxLength(280)
+                        .HasColumnType("character varying(280)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatorSideText")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<DateTime?>("ExpiredAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("MatchId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("MatchedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("SettledAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("StakeAmountCc")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("TakerSideText")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("VoidedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("WinnerSide")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MatchId", "Status");
+
+                    b.ToTable("match_challenges", (string)null);
+                });
+
+            modelBuilder.Entity("WorldCupBets.Domain.Entities.MatchChallengePosition", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("EscrowedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("MatchChallengeId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Side")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<decimal>("StakeAmountCc")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("MatchChallengeId", "Side")
+                        .IsUnique();
+
+                    b.ToTable("match_challenge_positions", (string)null);
                 });
 
             modelBuilder.Entity("WorldCupBets.Domain.Entities.Role", b =>
@@ -522,13 +649,52 @@ namespace WorldCupBets.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("WorldCupBets.Domain.Entities.TournamentPick", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("ExternalId")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<DateTime>("PlacedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SelectedText")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<decimal>("StakeAmountCc")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "Category")
+                        .IsUnique();
+
+                    b.ToTable("tournament_picks", (string)null);
+                });
+
             modelBuilder.Entity("WorldCupBets.Domain.Entities.TournamentSettlement", b =>
                 {
                     b.Property<int>("Id")
                         .HasColumnType("integer");
 
-                    b.Property<int>("ChampionJackpotCc")
-                        .HasColumnType("integer");
+                    b.Property<decimal>("ChampionJackpotCc")
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<DateTime?>("ChampionSettledAtUtc")
                         .HasColumnType("timestamp with time zone");
@@ -537,8 +703,8 @@ namespace WorldCupBets.Infrastructure.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
-                    b.Property<int>("UndistributedJackpotCc")
-                        .HasColumnType("integer");
+                    b.Property<decimal>("UndistributedJackpotCc")
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<int>("Version")
                         .IsConcurrencyToken()
@@ -557,8 +723,8 @@ namespace WorldCupBets.Infrastructure.Persistence.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("CurrentBalanceCc")
-                        .HasColumnType("integer");
+                    b.Property<decimal>("CurrentBalanceCc")
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<string>("DisplayName")
                         .IsRequired()
@@ -578,8 +744,8 @@ namespace WorldCupBets.Infrastructure.Persistence.Migrations
                     b.Property<int>("RescueCount")
                         .HasColumnType("integer");
 
-                    b.Property<int>("RescueDebtCc")
-                        .HasColumnType("integer");
+                    b.Property<decimal>("RescueDebtCc")
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<int>("Version")
                         .IsConcurrencyToken()
@@ -599,67 +765,67 @@ namespace WorldCupBets.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = 101,
-                            CurrentBalanceCc = 1325,
+                            CurrentBalanceCc = 1325m,
                             DisplayName = "Maple Moose",
                             Email = "maple@worldcupbets.local",
                             GoogleSubject = "demo-maple",
                             RescueCount = 0,
-                            RescueDebtCc = 0,
+                            RescueDebtCc = 0m,
                             Version = 0
                         },
                         new
                         {
                             Id = 102,
-                            CurrentBalanceCc = 1180,
+                            CurrentBalanceCc = 1180m,
                             DisplayName = "Zayu Jaguar",
                             Email = "zayu@worldcupbets.local",
                             GoogleSubject = "demo-zayu",
                             RescueCount = 0,
-                            RescueDebtCc = 0,
+                            RescueDebtCc = 0m,
                             Version = 0
                         },
                         new
                         {
                             Id = 103,
-                            CurrentBalanceCc = 1110,
+                            CurrentBalanceCc = 1110m,
                             DisplayName = "Clutch Eagle",
                             Email = "clutch@worldcupbets.local",
                             GoogleSubject = "demo-clutch",
                             RescueCount = 1,
-                            RescueDebtCc = 100,
+                            RescueDebtCc = 100m,
                             Version = 0
                         },
                         new
                         {
                             Id = 104,
-                            CurrentBalanceCc = 990,
+                            CurrentBalanceCc = 990m,
                             DisplayName = "Lucia del Gol",
                             Email = "lucia@worldcupbets.local",
                             GoogleSubject = "demo-lucia",
                             RescueCount = 0,
-                            RescueDebtCc = 0,
+                            RescueDebtCc = 0m,
                             Version = 0
                         },
                         new
                         {
                             Id = 105,
-                            CurrentBalanceCc = 845,
+                            CurrentBalanceCc = 845m,
                             DisplayName = "Takeshi Bracket",
                             Email = "takeshi@worldcupbets.local",
                             GoogleSubject = "demo-takeshi",
                             RescueCount = 2,
-                            RescueDebtCc = 200,
+                            RescueDebtCc = 200m,
                             Version = 0
                         },
                         new
                         {
                             Id = 106,
-                            CurrentBalanceCc = 760,
+                            CurrentBalanceCc = 760m,
                             DisplayName = "Nora Finalista",
                             Email = "nora@worldcupbets.local",
                             GoogleSubject = "demo-nora",
                             RescueCount = 0,
-                            RescueDebtCc = 0,
+                            RescueDebtCc = 0m,
                             Version = 0
                         });
                 });
@@ -737,17 +903,6 @@ namespace WorldCupBets.Infrastructure.Persistence.Migrations
                         });
                 });
 
-            modelBuilder.Entity("WorldCupBets.Domain.Entities.ChampionBet", b =>
-                {
-                    b.HasOne("WorldCupBets.Domain.Entities.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("WorldCupBets.Domain.Entities.MatchBet", b =>
                 {
                     b.HasOne("WorldCupBets.Domain.Entities.Match", "Match")
@@ -763,6 +918,47 @@ namespace WorldCupBets.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Match");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("WorldCupBets.Domain.Entities.MatchChallenge", b =>
+                {
+                    b.HasOne("WorldCupBets.Domain.Entities.Match", "Match")
+                        .WithMany()
+                        .HasForeignKey("MatchId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Match");
+                });
+
+            modelBuilder.Entity("WorldCupBets.Domain.Entities.MatchChallengePosition", b =>
+                {
+                    b.HasOne("WorldCupBets.Domain.Entities.MatchChallenge", "MatchChallenge")
+                        .WithMany("Positions")
+                        .HasForeignKey("MatchChallengeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("WorldCupBets.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MatchChallenge");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("WorldCupBets.Domain.Entities.TournamentPick", b =>
+                {
+                    b.HasOne("WorldCupBets.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("User");
                 });
@@ -784,6 +980,11 @@ namespace WorldCupBets.Infrastructure.Persistence.Migrations
                     b.Navigation("Role");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("WorldCupBets.Domain.Entities.MatchChallenge", b =>
+                {
+                    b.Navigation("Positions");
                 });
 
             modelBuilder.Entity("WorldCupBets.Domain.Entities.Role", b =>

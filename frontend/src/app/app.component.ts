@@ -26,6 +26,7 @@ import { ThemeService } from "./core/theme/theme.service";
               } @else {
                 <a class="rounded-full px-3 py-2 text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800" routerLink="/matches" routerLinkActive="bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-200">Matches</a>
                 <a class="rounded-full px-3 py-2 text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800" routerLink="/bets" routerLinkActive="bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-200">My Bets</a>
+                <a class="rounded-full px-3 py-2 text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800" routerLink="/challenges" routerLinkActive="bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-200">Challenges</a>
                 <a class="rounded-full px-3 py-2 text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800" routerLink="/leaderboard" routerLinkActive="bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-200">Leaderboard</a>
                 @if (isAdmin()) {
                   <a class="rounded-full px-3 py-2 text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800" routerLink="/admin" routerLinkActive="bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-200">Admin</a>
@@ -48,6 +49,7 @@ import { ThemeService } from "./core/theme/theme.service";
                   <nav class="grid p-2 text-sm font-medium md:hidden">
                     <a class="rounded-xl px-3 py-2 text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800" routerLink="/matches">Matches</a>
                     <a class="rounded-xl px-3 py-2 text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800" routerLink="/bets">My Bets</a>
+                    <a class="rounded-xl px-3 py-2 text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800" routerLink="/challenges">Challenges</a>
                     <a class="rounded-xl px-3 py-2 text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800" routerLink="/leaderboard">Leaderboard</a>
                     @if (isAdmin()) {
                       <a class="rounded-xl px-3 py-2 text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800" routerLink="/admin">Admin</a>

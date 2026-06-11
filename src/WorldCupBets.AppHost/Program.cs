@@ -17,6 +17,7 @@ var jwtSecret = GetRequiredConfiguration(builder.Configuration, "JWT_SECRET");
 
 var googleClientId = builder.Configuration["GOOGLE_CLIENT_ID"] ?? string.Empty;
 var enableDevLogin = builder.Configuration["ENABLE_DEV_LOGIN"] ?? "true";
+var apiSportsFootballApiKey = builder.Configuration["API_SPORTS_FOOTBALL_KEY"] ?? string.Empty;
 
 var postgres = builder.AddPostgres("postgres", password: dbPassword, userName: dbUsername, port: 5432)
     .WithDataVolume("pgdata");
@@ -29,6 +30,7 @@ var api = builder.AddProject("api", "../WorldCupBets.WebApi/WorldCupBets.WebApi.
     .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
     .WithEnvironment("Jwt__Secret", jwtSecret)
     .WithEnvironment("Google__ClientId", googleClientId)
+    .WithEnvironment("ApiSportsFootball__ApiKey", apiSportsFootballApiKey)
     .WithReference(database, connectionName: "DefaultConnection")
     .WithReference(redis, connectionName: "Redis")
     .WaitFor(database)

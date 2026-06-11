@@ -50,7 +50,9 @@ export interface ChampionBetMarket {
 	stakeAmountCc: number;
 	bettingClosesAtUtc: string | null;
 	isBettingOpen: boolean;
+	isSettled: boolean;
 	currentUserChampionTeamName: string | null;
+	currentUserChampionTeamFlagUrl: string | null;
 }
 
 export interface PlaceChampionBetRequest {
@@ -62,6 +64,48 @@ export interface PlaceChampionBetResult {
 	stakeAmountCc: number;
 	remainingBalanceCc: number;
 	placedAtUtc: string;
+}
+
+export type SpecialPlayerBetCategory = "BestPlayer" | "TopScorer";
+
+export interface SpecialBetMarket {
+	stakeAmountCc: number;
+	bettingClosesAtUtc: string | null;
+	isBettingOpen: boolean;
+	playerBets: ReadonlyArray<SpecialPlayerBet>;
+}
+
+export interface SpecialPlayerBet {
+	category: SpecialPlayerBetCategory;
+	playerName: string;
+	externalPlayerId: string | null;
+	playerPhotoUrl: string | null;
+	stakeAmountCc: number;
+	placedAtUtc: string;
+}
+
+export interface PlaceSpecialPlayerBetRequest {
+	category: SpecialPlayerBetCategory;
+	playerName: string;
+	externalPlayerId: string | null;
+}
+
+export interface PlaceSpecialPlayerBetResult {
+	category: SpecialPlayerBetCategory;
+	playerName: string;
+	externalPlayerId: string | null;
+	stakeAmountCc: number;
+	remainingBalanceCc: number;
+	placedAtUtc: string;
+}
+
+export interface PlayerSearchResult {
+	externalId: string;
+	name: string;
+	teamName: string | null;
+	nationality: string | null;
+	position: string | null;
+	thumbnailUrl: string | null;
 }
 
 export interface SettleChampionRequest {
@@ -156,6 +200,41 @@ export interface SyncFootballDataResult {
 	groupsCount: number;
 	matchesCount: number;
 	syncedAtUtc: string;
+}
+
+export interface PlayerSquadSyncError {
+	teamName: string;
+	message: string;
+	rateLimited: boolean;
+}
+
+export interface SyncPlayerSquadsResult {
+	providerName: string;
+	notConfigured: boolean;
+	teamsProcessedCount: number;
+	playersIndexedCount: number;
+	errors: ReadonlyArray<PlayerSquadSyncError>;
+	syncedAtUtc: string;
+}
+
+export interface MatchInsightFact {
+	text: string;
+}
+
+export interface MatchInsightAntecedent {
+	text: string;
+}
+
+export interface MatchInsightQa {
+	question: string;
+	answer: string;
+}
+
+export interface MatchInsights {
+	isAvailable: boolean;
+	facts: ReadonlyArray<MatchInsightFact>;
+	antecedents: ReadonlyArray<MatchInsightAntecedent>;
+	qa: ReadonlyArray<MatchInsightQa>;
 }
 
 export interface ImportGroupStageFixturesResult {

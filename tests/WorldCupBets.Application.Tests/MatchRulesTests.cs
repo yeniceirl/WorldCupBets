@@ -159,6 +159,11 @@ public sealed class MatchRulesTests
             return Task.FromResult<IReadOnlyList<MatchBet>>(matchBets.Where(matchBet => matchBet.MatchId == matchId).ToArray());
         }
 
+        public Task<IReadOnlyDictionary<int, decimal>> ListPendingStakeAmountsByUserAsync(CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
         public Task AddAsync(MatchBet matchBet, CancellationToken cancellationToken = default)
         {
             throw new NotSupportedException();

@@ -9,7 +9,7 @@ public sealed record MatchListItemDto(
     DateTime StartsAtUtc,
     DateTime BettingClosesAtUtc,
     bool IsBettingOpen,
-    int StakeAmountCc,
+    decimal StakeAmountCc,
     string Venue,
     string? CurrentUserBetSelection,
     string? OfficialResult,

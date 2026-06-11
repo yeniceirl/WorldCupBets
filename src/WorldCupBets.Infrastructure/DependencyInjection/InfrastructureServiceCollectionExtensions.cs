@@ -2,8 +2,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using WorldCupBets.Application.Abstractions;
+using WorldCupBets.Application.Features.FootballData;
 using WorldCupBets.Domain.Repositories;
+using WorldCupBets.Infrastructure.AiInsights;
 using WorldCupBets.Infrastructure.Authentication;
 using WorldCupBets.Infrastructure.Caching;
 using WorldCupBets.Infrastructure.ExternalFootball;
@@ -20,6 +23,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddPersistence(configuration);
         services.AddCaching(configuration);
         services.AddExternalFootballData(configuration);
+        services.AddAiInsights(configuration);
         services.AddAuthenticationAdapters();
         services.AddMessaging(configuration);
         return services;
@@ -34,12 +38,14 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IApplicationTransactionFactory, EfApplicationTransactionFactory>();
         services.AddScoped<IMatchRepository, MatchRepository>();
         services.AddScoped<IMatchBetRepository, MatchBetRepository>();
-        services.AddScoped<IChampionBetRepository, ChampionBetRepository>();
+        services.AddScoped<IMatchChallengeRepository, MatchChallengeRepository>();
+        services.AddScoped<ITournamentPickRepository, TournamentPickRepository>();
         services.AddScoped<ITournamentSettlementRepository, TournamentSettlementRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IUserInvitationRepository, UserInvitationRepository>();
         services.AddScoped<IRoleRepository, RoleRepository>();
         services.AddScoped<IExternalFootballDataRepository, ExternalFootballDataRepository>();
+        services.AddScoped<IExternalFootballPlayerRepository, ExternalFootballPlayerRepository>();
         return services;
     }
 
@@ -51,8 +57,25 @@ public static class InfrastructureServiceCollectionExtensions
             Provider = section["Provider"] ?? "worldcup26",
             BaseUrl = section["BaseUrl"] ?? "https://worldcup26.ir"
         };
+        var apiSportsSection = configuration.GetSection("ApiSportsFootball");
+        var includedTeamNames = apiSportsSection.GetSection("IncludedTeamNames")
+            .GetChildren()
+            .Select(section => section.Value)
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value!)
+            .ToArray();
+        var apiSportsOptions = new ApiSportsFootballOptions
+        {
+            ApiKey = apiSportsSection["ApiKey"] ?? string.Empty,
+            BaseUrl = apiSportsSection["BaseUrl"] ?? "https://v3.football.api-sports.io",
+            IncludedTeamNames = includedTeamNames.Length > 0
+                ? new HashSet<string>(includedTeamNames, StringComparer.OrdinalIgnoreCase)
+                : new HashSet<string>(ApiSportsFootballOptions.DefaultIncludedTeamNames, StringComparer.OrdinalIgnoreCase),
+        };
 
         services.AddSingleton(options);
+        services.AddSingleton(apiSportsOptions);
+        services.AddSingleton(new ApiSportsFootballSyncOptions(apiSportsOptions.ApiKey, apiSportsOptions.IncludedTeamNames));
         services.AddSingleton<IFootballDataProvider>(serviceProvider =>
         {
             var httpClient = new HttpClient
@@ -61,6 +84,54 @@ public static class InfrastructureServiceCollectionExtensions
             };
 
             return new WorldCup26FootballDataProvider(httpClient, serviceProvider.GetRequiredService<ExternalFootballDataOptions>());
+        });
+        services.AddScoped<IPlayerSearchProvider>(serviceProvider =>
+        {
+            if (string.IsNullOrWhiteSpace(apiSportsOptions.ApiKey))
+            {
+                return new EmptyPlayerSearchProvider();
+            }
+
+            return new ApiSportsFootballPlayerSearchProvider(
+                serviceProvider.GetRequiredService<IExternalFootballPlayerRepository>());
+        });
+        services.AddScoped<IPlayerSquadProvider>(_ => new ApiSportsPlayerSquadProvider(
+            new HttpClient { BaseAddress = new Uri(apiSportsOptions.BaseUrl) },
+            apiSportsOptions));
+
+        return services;
+    }
+
+    private static IServiceCollection AddAiInsights(this IServiceCollection services, IConfiguration configuration)
+    {
+        var section = configuration.GetSection("AiInsights");
+        var options = new AiInsightsOptions
+        {
+            ApiKey = section["ApiKey"] ?? string.Empty,
+            BaseUrl = section["BaseUrl"] ?? "https://opencode.ai/zen/go/v1",
+            Model = section["Model"] ?? "qwen3.7-plus",
+            TimeoutSeconds = int.TryParse(section["TimeoutSeconds"], out var timeoutSeconds) ? timeoutSeconds : 60,
+            MaxTokens = int.TryParse(section["MaxTokens"], out var maxTokens) ? maxTokens : 700,
+        };
+
+        services.AddSingleton(options);
+        services.AddSingleton<IAiInsightsProvider>(serviceProvider =>
+        {
+            if (string.IsNullOrWhiteSpace(options.ApiKey))
+            {
+                return new EmptyAiInsightsProvider();
+            }
+
+            var httpClient = new HttpClient
+            {
+                BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/"),
+                Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds)
+            };
+
+            return new OpenCodeGoAiInsightsProvider(
+                httpClient,
+                options,
+                serviceProvider.GetRequiredService<ILogger<OpenCodeGoAiInsightsProvider>>());
         });
 
         return services;

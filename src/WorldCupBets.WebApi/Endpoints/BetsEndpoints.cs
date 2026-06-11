@@ -120,7 +120,6 @@ public static class BetsEndpoints
                     "bets.invalid_champion_team" => Results.BadRequest(new { error = result.Error.Message }),
                     "bets.champion_betting_closed" => Results.BadRequest(new { error = result.Error.Message }),
                     "bets.insufficient_balance" => Results.BadRequest(new { error = result.Error.Message }),
-                    "bets.champion_bet_already_exists" => Results.Conflict(new { error = result.Error.Message }),
                     "bets.user_not_found" => Results.Unauthorized(),
                     _ => Results.BadRequest(new { error = result.Error?.Message ?? "The champion bet could not be placed." })
                 };
@@ -173,6 +172,83 @@ public static class BetsEndpoints
         .Produces(StatusCodes.Status403Forbidden)
         .Produces(StatusCodes.Status409Conflict);
 
+        group.MapGet("/special", async (
+            ClaimsPrincipal user,
+            IMessageBus messageBus,
+            CancellationToken cancellationToken) =>
+        {
+            var userIdValue = user.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? user.FindFirstValue("sub");
+
+            if (!int.TryParse(userIdValue, out var userId))
+            {
+                return Results.Unauthorized();
+            }
+
+            var result = await messageBus.InvokeAsync<SpecialBetMarketDto>(new GetSpecialBetMarketQuery(userId), cancellationToken);
+            return Results.Ok(result);
+        })
+        .WithName("GetSpecialBetMarket")
+        .WithSummary("Get tournament special bet metadata and current bettor player selections.")
+        .Produces<SpecialBetMarketDto>(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status401Unauthorized);
+
+        group.MapPost("/special/player", async (
+            PlaceSpecialPlayerBetRequest request,
+            ClaimsPrincipal user,
+            IMessageBus messageBus,
+            CancellationToken cancellationToken) =>
+        {
+            var userIdValue = user.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? user.FindFirstValue("sub");
+
+            if (!int.TryParse(userIdValue, out var userId))
+            {
+                return Results.Unauthorized();
+            }
+
+            if (!Enum.TryParse<TournamentPickCategory>(request.Category, true, out var category)
+                || category is TournamentPickCategory.Champion)
+            {
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    [nameof(request.Category)] = ["Category must be one of: BestPlayer, TopScorer."]
+                });
+            }
+
+            if (string.IsNullOrWhiteSpace(request.PlayerName))
+            {
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    [nameof(request.PlayerName)] = ["Player name is required."]
+                });
+            }
+
+            var result = await messageBus.InvokeAsync<Result<PlaceSpecialPlayerBetResultDto>>(
+                new PlaceSpecialPlayerBetCommand(userId, category, request.PlayerName, request.ExternalPlayerId),
+                cancellationToken);
+
+            if (result.IsFailure)
+            {
+                return result.Error?.Code switch
+                {
+                    "bets.invalid_player_name" => Results.BadRequest(new { error = result.Error.Message }),
+                    "bets.special_betting_closed" => Results.BadRequest(new { error = result.Error.Message }),
+                    "bets.insufficient_balance" => Results.BadRequest(new { error = result.Error.Message }),
+                    "bets.user_not_found" => Results.Unauthorized(),
+                    _ => Results.BadRequest(new { error = result.Error?.Message ?? "The player bet could not be placed." })
+                };
+            }
+
+            return Results.Ok(result.Value);
+        })
+        .WithName("PlaceSpecialPlayerBet")
+        .WithSummary("Place a player-based tournament special bet as the authenticated bettor.")
+        .Produces<PlaceSpecialPlayerBetResultDto>(StatusCodes.Status200OK)
+        .ProducesValidationProblem(StatusCodes.Status400BadRequest)
+        .Produces(StatusCodes.Status401Unauthorized)
+        .Produces(StatusCodes.Status409Conflict);
+
         return group;
     }
 }
@@ -182,3 +258,5 @@ public sealed record PlaceMatchBetRequest(int MatchId, string Selection);
 public sealed record PlaceChampionBetRequest(string TeamName);
 
 public sealed record SettleChampionRequest(string ChampionTeamName);
+
+public sealed record PlaceSpecialPlayerBetRequest(string Category, string PlayerName, string? ExternalPlayerId);

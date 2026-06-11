@@ -7,13 +7,13 @@ namespace WorldCupBets.Application.Features.Bets;
 
 public sealed class PlaceChampionBetHandler
 {
-    public const int ChampionBetStakeAmountCc = 50;
+    public const decimal ChampionBetStakeAmountCc = 50m;
 
     public static async Task<Result<PlaceChampionBetResultDto>> Handle(
         PlaceChampionBetCommand command,
         IUserRepository userRepository,
         IMatchRepository matchRepository,
-        IChampionBetRepository championBetRepository,
+        ITournamentPickRepository tournamentPickRepository,
         IApplicationTransactionFactory transactionFactory,
         CancellationToken cancellationToken)
     {
@@ -31,16 +31,27 @@ public sealed class PlaceChampionBetHandler
             return Result<PlaceChampionBetResultDto>.Failure(new Error("bets.invalid_champion_team", "The selected champion team is not available."));
         }
 
-        if (await championBetRepository.ExistsForUserAsync(command.UserId, cancellationToken))
-        {
-            return Result<PlaceChampionBetResultDto>.Failure(new Error("bets.champion_bet_already_exists", "You already placed a champion bet."));
-        }
-
         var closesAtUtc = await matchRepository.GetChampionBettingClosesAtUtcAsync(cancellationToken);
         var nowUtc = DateTime.UtcNow;
         if (closesAtUtc is not null && nowUtc >= closesAtUtc.Value)
         {
             return Result<PlaceChampionBetResultDto>.Failure(new Error("bets.champion_betting_closed", "Champion betting is already closed."));
+        }
+
+        var normalizedTeamName = teamOptions.Single(teamName => string.Equals(teamName, command.TeamName, StringComparison.OrdinalIgnoreCase));
+
+        var existingChampionBet = await tournamentPickRepository.GetTrackedByUserAndCategoryAsync(command.UserId, TournamentPickCategory.Champion, cancellationToken);
+        if (existingChampionBet is not null)
+        {
+            existingChampionBet.ChangeChampionSelection(normalizedTeamName);
+            await userRepository.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+
+            return Result<PlaceChampionBetResultDto>.Success(new PlaceChampionBetResultDto(
+                normalizedTeamName,
+                existingChampionBet.StakeAmountCc,
+                user.CurrentBalanceCc,
+                existingChampionBet.PlacedAtUtc));
         }
 
         if (!user.CanAfford(ChampionBetStakeAmountCc))
@@ -51,9 +62,8 @@ public sealed class PlaceChampionBetHandler
         user.DeductBalance(ChampionBetStakeAmountCc);
         user.ApplyDeadRescueIfEligible();
 
-        var normalizedTeamName = teamOptions.Single(teamName => string.Equals(teamName, command.TeamName, StringComparison.OrdinalIgnoreCase));
-        var championBet = ChampionBet.Create(command.UserId, normalizedTeamName, ChampionBetStakeAmountCc, nowUtc);
-        await championBetRepository.AddAsync(championBet, cancellationToken);
+        var championBet = TournamentPick.CreateChampion(command.UserId, normalizedTeamName, ChampionBetStakeAmountCc, nowUtc);
+        await tournamentPickRepository.AddAsync(championBet, cancellationToken);
         await userRepository.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 

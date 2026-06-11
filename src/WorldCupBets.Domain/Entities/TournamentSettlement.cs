@@ -15,13 +15,13 @@ public sealed class TournamentSettlement : Entity
         Id = id;
     }
 
-    public int ChampionJackpotCc { get; private set; }
+    public decimal ChampionJackpotCc { get; private set; }
 
     public string? ChampionTeamName { get; private set; }
 
     public DateTime? ChampionSettledAtUtc { get; private set; }
 
-    public int UndistributedJackpotCc { get; private set; }
+    public decimal UndistributedJackpotCc { get; private set; }
 
     public int Version { get; private set; }
 
@@ -30,7 +30,7 @@ public sealed class TournamentSettlement : Entity
         return new TournamentSettlement(SingletonId);
     }
 
-    public void AddChampionJackpot(int amountCc)
+    public void AddChampionJackpot(decimal amountCc)
     {
         if (amountCc <= 0)
         {
@@ -40,7 +40,7 @@ public sealed class TournamentSettlement : Entity
         ChampionJackpotCc = checked(ChampionJackpotCc + amountCc);
     }
 
-    public void MarkChampionSettled(string championTeamName, DateTime settledAtUtc, int undistributedJackpotCc)
+    public void MarkChampionSettled(string championTeamName, DateTime settledAtUtc, decimal undistributedJackpotCc)
     {
         if (string.IsNullOrWhiteSpace(championTeamName))
         {

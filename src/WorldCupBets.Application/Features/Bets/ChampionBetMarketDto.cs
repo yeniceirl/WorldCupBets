@@ -2,7 +2,9 @@ namespace WorldCupBets.Application.Features.Bets;
 
 public sealed record ChampionBetMarketDto(
     IReadOnlyList<string> TeamOptions,
-    int StakeAmountCc,
+    decimal StakeAmountCc,
     DateTime? BettingClosesAtUtc,
     bool IsBettingOpen,
-    string? CurrentUserChampionTeamName);
+    bool IsSettled,
+    string? CurrentUserChampionTeamName,
+    string? CurrentUserChampionTeamFlagUrl);

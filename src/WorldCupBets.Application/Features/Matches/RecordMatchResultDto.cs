@@ -6,6 +6,6 @@ public sealed record RecordMatchResultDto(
     bool WasAlreadySettled,
     int WinnersCount,
     int LosersCount,
-    int ChampionJackpotContributionCc,
-    int ChampionJackpotCc,
+    decimal ChampionJackpotContributionCc,
+    decimal ChampionJackpotCc,
     DateTime SettledAtUtc);

@@ -22,7 +22,7 @@ public static class LeaderboardEndpoints
             return Results.Ok(leaderboard);
         })
         .WithName("GetLeaderboard")
-        .WithSummary("List bettors ordered by current CopaCoin balance.")
+        .WithSummary("List bettors ordered by realized CopaCoin balance.")
         .Produces<IReadOnlyList<LeaderboardItemDto>>(StatusCodes.Status200OK)
         .Produces(StatusCodes.Status401Unauthorized)
         .Produces(StatusCodes.Status403Forbidden);

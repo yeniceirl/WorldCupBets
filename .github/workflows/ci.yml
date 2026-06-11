@@ -8,6 +8,7 @@ on:
     branches:
       - master
       - main
+      - develop
   pull_request:
 
 jobs:
@@ -35,7 +36,7 @@ jobs:
 
   frontend:
     name: Frontend
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     defaults:
       run:
@@ -57,3 +58,9 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E
+        run: npm run e2e

@@ -20,7 +20,7 @@ public sealed class PlaceChampionBetHandlerTests
             new PlaceChampionBetCommand(user.Id, "Argentina"),
             new StubUserRepository(user),
             new StubMatchRepository(["Argentina", "Japan"], new DateTime(2026, 6, 30, 18, 0, 0, DateTimeKind.Utc)),
-            new StubChampionBetRepository(),
+            new StubTournamentPickRepository(),
             new NoopApplicationTransactionFactory(),
             CancellationToken.None);
 
@@ -33,22 +33,29 @@ public sealed class PlaceChampionBetHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Rejects_Duplicate_Champion_Bet_For_Same_User()
+    public async Task Handle_Changes_Existing_Champion_Selection_Without_Charging_Again()
     {
         var user = User.Create("google-1", "ada@example.com", "Ada");
         SetEntityId(user, 10);
-        var existingBet = ChampionBet.Create(user.Id, "Argentina", 50, DateTime.UtcNow);
+        user.DeductBalance(50);
+        var placedAtUtc = new DateTime(2026, 6, 1, 12, 0, 0, DateTimeKind.Utc);
+        var existingBet = TournamentPick.CreateChampion(user.Id, "Argentina", 50, placedAtUtc);
 
         var result = await PlaceChampionBetHandler.Handle(
             new PlaceChampionBetCommand(user.Id, "Japan"),
             new StubUserRepository(user),
             new StubMatchRepository(["Argentina", "Japan"], new DateTime(2026, 6, 30, 18, 0, 0, DateTimeKind.Utc)),
-            new StubChampionBetRepository(existingBet),
+            new StubTournamentPickRepository(existingBet),
             new NoopApplicationTransactionFactory(),
             CancellationToken.None);
 
-        Assert.True(result.IsFailure);
-        Assert.Equal("bets.champion_bet_already_exists", result.Error?.Code);
+        Assert.True(result.IsSuccess);
+        Assert.Equal("Japan", result.Value!.TeamName);
+        Assert.Equal("Japan", existingBet.SelectedText);
+        Assert.Equal(50, result.Value.StakeAmountCc);
+        Assert.Equal(placedAtUtc, result.Value.PlacedAtUtc);
+        Assert.Equal(950, user.CurrentBalanceCc);
+        Assert.Equal(950, result.Value.RemainingBalanceCc);
     }
 
     [Fact]
@@ -61,7 +68,7 @@ public sealed class PlaceChampionBetHandlerTests
             new PlaceChampionBetCommand(user.Id, "Argentina"),
             new StubUserRepository(user),
             new StubMatchRepository(["Argentina", "Japan"], DateTime.UtcNow.AddMinutes(-1)),
-            new StubChampionBetRepository(),
+            new StubTournamentPickRepository(),
             new NoopApplicationTransactionFactory(),
             CancellationToken.None);
 
@@ -80,7 +87,7 @@ public sealed class PlaceChampionBetHandlerTests
             new PlaceChampionBetCommand(user.Id, "Argentina"),
             new StubUserRepository(user),
             new StubMatchRepository(["Argentina", "Japan"], new DateTime(2026, 6, 30, 18, 0, 0, DateTimeKind.Utc)),
-            new StubChampionBetRepository(),
+            new StubTournamentPickRepository(),
             new NoopApplicationTransactionFactory(),
             CancellationToken.None);
 
@@ -89,6 +96,31 @@ public sealed class PlaceChampionBetHandlerTests
         Assert.Equal(1, user.RescueCount);
         Assert.Equal(User.DeadRescueAmountCc, user.RescueDebtCc);
         Assert.Equal(User.DeadRescueAmountCc, result.Value!.RemainingBalanceCc);
+    }
+
+    [Fact]
+    public async Task Market_Maps_Current_Champion_Pick_Selected_Text_To_Team_Name()
+    {
+        var user = User.Create("google-1", "ada@example.com", "Ada");
+        SetEntityId(user, 10);
+
+        var result = await GetChampionBetMarketHandler.Handle(
+            new GetChampionBetMarketQuery(user.Id),
+            new StubMatchRepository(["Argentina", "Japan"], new DateTime(2026, 6, 30, 18, 0, 0, DateTimeKind.Utc)),
+            new StubTournamentPickRepository(TournamentPick.CreateChampion(user.Id, "Argentina", 50, DateTime.UtcNow)),
+            new StubTournamentSettlementRepository(),
+            new StubExternalFootballDataRepository(new ExternalFootballSnapshot(
+                [new ExternalFootballTeamDto("ext-arg", "Argentina", "ARG", "AR", "A", "https://example.com/argentina-flag.png")],
+                [],
+                [],
+                [],
+                DateTime.UtcNow)),
+            new StubFootballDataProvider(),
+            CancellationToken.None);
+
+        Assert.Equal("Argentina", result.CurrentUserChampionTeamName);
+        Assert.Equal("https://example.com/argentina-flag.png", result.CurrentUserChampionTeamFlagUrl);
+        Assert.Equal(["Argentina", "Japan"], result.TeamOptions);
     }
 
     private static void SetEntityId(Entity entity, int id)
@@ -100,7 +132,7 @@ public sealed class PlaceChampionBetHandlerTests
     private static void SetProperty(object target, string propertyName, object? value)
     {
         var property = target.GetType().GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-        property!.SetValue(target, value);
+        property!.SetValue(target, property.PropertyType == typeof(decimal) && value is not null ? Convert.ToDecimal(value) : value);
     }
 
     private sealed class StubUserRepository(params User[] users) : IUserRepository
@@ -179,29 +211,75 @@ public sealed class PlaceChampionBetHandlerTests
         }
     }
 
-    private sealed class StubChampionBetRepository(params ChampionBet[] seeded) : IChampionBetRepository
+    private sealed class StubTournamentSettlementRepository : ITournamentSettlementRepository
     {
-        private readonly List<ChampionBet> championBets = [.. seeded];
-
-        public Task<bool> ExistsForUserAsync(int userId, CancellationToken cancellationToken = default)
+        public Task<TournamentSettlement> GetOrCreateSingletonAsync(CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(championBets.Any(championBet => championBet.UserId == userId));
+            throw new NotSupportedException();
         }
 
-        public Task<ChampionBet?> GetByUserAsync(int userId, CancellationToken cancellationToken = default)
+        public Task<bool> IsChampionSettledAsync(CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(championBets.SingleOrDefault(championBet => championBet.UserId == userId));
+            return Task.FromResult(false);
+        }
+    }
+
+    private sealed class StubTournamentPickRepository(params TournamentPick[] seeded) : ITournamentPickRepository
+    {
+        private readonly List<TournamentPick> tournamentPicks = [.. seeded];
+
+        public Task<TournamentPick?> GetByUserAndCategoryAsync(int userId, TournamentPickCategory category, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(tournamentPicks.SingleOrDefault(tournamentPick => tournamentPick.UserId == userId && tournamentPick.Category == category));
         }
 
-        public Task<IReadOnlyList<ChampionBet>> ListForSettlementAsync(CancellationToken cancellationToken = default)
+        public Task<TournamentPick?> GetTrackedByUserAndCategoryAsync(int userId, TournamentPickCategory category, CancellationToken cancellationToken = default)
         {
-            return Task.FromResult<IReadOnlyList<ChampionBet>>(championBets.ToArray());
+            return Task.FromResult(tournamentPicks.SingleOrDefault(tournamentPick => tournamentPick.UserId == userId && tournamentPick.Category == category));
         }
 
-        public Task AddAsync(ChampionBet championBet, CancellationToken cancellationToken = default)
+        public Task<IReadOnlyList<TournamentPick>> ListByUserAndCategoriesAsync(int userId, IReadOnlyCollection<TournamentPickCategory> categories, CancellationToken cancellationToken = default)
         {
-            championBets.Add(championBet);
+            return Task.FromResult<IReadOnlyList<TournamentPick>>(tournamentPicks.Where(tournamentPick => tournamentPick.UserId == userId && categories.Contains(tournamentPick.Category)).ToArray());
+        }
+
+        public Task<IReadOnlyList<TournamentPick>> ListChampionForSettlementAsync(CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<IReadOnlyDictionary<int, decimal>> ListStakeAmountsByUserAsync(IReadOnlyCollection<TournamentPickCategory> categories, CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task AddAsync(TournamentPick pick, CancellationToken cancellationToken = default)
+        {
+            tournamentPicks.Add(pick);
             return Task.CompletedTask;
+        }
+    }
+
+    private sealed class StubExternalFootballDataRepository(ExternalFootballSnapshot? snapshot) : IExternalFootballDataRepository
+    {
+        public Task ReplaceSnapshotAsync(string providerName, ExternalFootballSnapshot snapshot, CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<ExternalFootballSnapshot?> GetSnapshotAsync(string providerName, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(snapshot);
+        }
+    }
+
+    private sealed class StubFootballDataProvider : IFootballDataProvider
+    {
+        public string ProviderName => "worldcup26";
+
+        public Task<ExternalFootballSnapshot> GetSnapshotAsync(CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
         }
     }
 }

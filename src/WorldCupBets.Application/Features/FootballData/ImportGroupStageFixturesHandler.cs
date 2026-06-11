@@ -29,7 +29,7 @@ public sealed class ImportGroupStageFixturesHandler
 
         foreach (var externalMatch in snapshot.Matches.Where(IsGroupStageFixture))
         {
-            if (!TryParseLocalDateAsUtc(externalMatch.LocalDateText, out var startsAtUtc))
+            if (!TryParseLocalDateAsUtc(externalMatch.LocalDateText, stadiumsByExternalId.GetValueOrDefault(externalMatch.StadiumExternalId), out var startsAtUtc))
             {
                 skippedCount++;
                 continue;
@@ -104,7 +104,7 @@ public sealed class ImportGroupStageFixturesHandler
             && !string.IsNullOrWhiteSpace(externalMatch.GroupName);
     }
 
-    private static bool TryParseLocalDateAsUtc(string localDateText, out DateTime startsAtUtc)
+    private static bool TryParseLocalDateAsUtc(string localDateText, ExternalFootballStadiumDto? stadium, out DateTime startsAtUtc)
     {
         if (DateTime.TryParseExact(
                 localDateText,
@@ -113,12 +113,49 @@ public sealed class ImportGroupStageFixturesHandler
                 DateTimeStyles.None,
                 out var parsedDate))
         {
-            startsAtUtc = DateTime.SpecifyKind(parsedDate, DateTimeKind.Utc);
+            var timeZone = ResolveTimeZone(stadium);
+            if (timeZone is null)
+            {
+                startsAtUtc = DateTime.SpecifyKind(parsedDate, DateTimeKind.Utc);
+                return true;
+            }
+
+            startsAtUtc = TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(parsedDate, DateTimeKind.Unspecified), timeZone);
             return true;
         }
 
         startsAtUtc = default;
         return false;
+    }
+
+    private static TimeZoneInfo? ResolveTimeZone(ExternalFootballStadiumDto? stadium)
+    {
+        var city = stadium?.CityEn?.Trim();
+        if (string.IsNullOrWhiteSpace(city))
+        {
+            return null;
+        }
+
+        return city switch
+        {
+            "Mexico City" => TimeZoneInfo.FindSystemTimeZoneById("America/Mexico_City"),
+            "Guadalajara" => TimeZoneInfo.FindSystemTimeZoneById("America/Mexico_City"),
+            "Monterrey" => TimeZoneInfo.FindSystemTimeZoneById("America/Monterrey"),
+            "Arlington" => TimeZoneInfo.FindSystemTimeZoneById("America/Chicago"),
+            "Houston" => TimeZoneInfo.FindSystemTimeZoneById("America/Chicago"),
+            "Kansas City" => TimeZoneInfo.FindSystemTimeZoneById("America/Chicago"),
+            "Atlanta" => TimeZoneInfo.FindSystemTimeZoneById("America/New_York"),
+            "Boston" => TimeZoneInfo.FindSystemTimeZoneById("America/New_York"),
+            "East Rutherford" => TimeZoneInfo.FindSystemTimeZoneById("America/New_York"),
+            "Miami Gardens" => TimeZoneInfo.FindSystemTimeZoneById("America/New_York"),
+            "Philadelphia" => TimeZoneInfo.FindSystemTimeZoneById("America/New_York"),
+            "Toronto" => TimeZoneInfo.FindSystemTimeZoneById("America/Toronto"),
+            "Inglewood" => TimeZoneInfo.FindSystemTimeZoneById("America/Los_Angeles"),
+            "San Francisco Bay Area" => TimeZoneInfo.FindSystemTimeZoneById("America/Los_Angeles"),
+            "Seattle" => TimeZoneInfo.FindSystemTimeZoneById("America/Los_Angeles"),
+            "Vancouver" => TimeZoneInfo.FindSystemTimeZoneById("America/Vancouver"),
+            _ => null,
+        };
     }
 
     private static string GetFixtureKey(Match match)

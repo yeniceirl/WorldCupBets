@@ -146,7 +146,7 @@ interface PlayerBetDefinition {
 					@if (!championMarket()!.isBettingOpen || !specialMarket()!.isBettingOpen) {
 						<p class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">Tournament special betting is closed.</p>
 					} @else if (championMarket()!.bettingClosesAtUtc) {
-						<p class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">These picks close at the start of Round of 32: {{ championMarket()!.bettingClosesAtUtc | date: "medium" : "UTC" }} UTC.</p>
+						<p class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">These picks close at the start of Round of 32: {{ championMarket()!.bettingClosesAtUtc | date: "medium" }}.</p>
 					}
 				</section>
 
@@ -163,7 +163,7 @@ interface PlayerBetDefinition {
 									<div>
 										<p class="text-xs font-bold uppercase tracking-[0.2em] text-sky-700 dark:text-sky-300">{{ match.stage }}</p>
 										<h2 class="mt-2 text-xl font-bold text-slate-950 dark:text-white">{{ match.homeTeamName }} vs {{ match.awayTeamName }}</h2>
-										<p class="mt-1 text-sm text-slate-600 dark:text-slate-300">{{ match.startsAtUtc | date: "medium" : "UTC" }} UTC</p>
+									<p class="mt-1 text-sm text-slate-600 dark:text-slate-300">{{ match.startsAtUtc | date: "medium" }}</p>
 									</div>
 									<div class="flex flex-wrap gap-2 text-sm font-medium">
 										<span class="rounded-full bg-sky-50 px-3 py-1 text-sky-700 dark:bg-sky-950 dark:text-sky-200">Pick: {{ getSelectionLabel(match.currentUserBetSelection!, match) }}</span>

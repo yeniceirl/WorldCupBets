@@ -28,6 +28,7 @@ public sealed class ImportGroupStageFixturesHandlerTests
         Assert.Equal("A", matchRepository.Matches[0].GroupName);
         Assert.Equal("Mexico", matchRepository.Matches[0].HomeTeamName);
         Assert.Equal("South Africa", matchRepository.Matches[0].AwayTeamName);
+        Assert.Equal(new DateTime(2026, 6, 11, 19, 0, 0, DateTimeKind.Utc), matchRepository.Matches[0].StartsAtUtc);
         Assert.Equal("Estadio Azteca", matchRepository.Matches[0].Venue);
         Assert.Equal("worldcup26", matchRepository.Matches[0].SourceProvider);
         Assert.Equal("1", matchRepository.Matches[0].SourceMatchId);
@@ -59,7 +60,7 @@ public sealed class ImportGroupStageFixturesHandlerTests
         Assert.Equal(1, result.UpdatedCount);
         Assert.Equal(0, result.UnsafeUpdateSkippedCount);
         Assert.Single(matchRepository.Matches);
-        Assert.Equal(new DateTime(2026, 6, 11, 13, 0, 0, DateTimeKind.Utc), existingMatch.StartsAtUtc);
+        Assert.Equal(new DateTime(2026, 6, 11, 19, 0, 0, DateTimeKind.Utc), existingMatch.StartsAtUtc);
         Assert.Equal("Estadio Azteca", existingMatch.Venue);
         Assert.Equal("worldcup26", existingMatch.SourceProvider);
         Assert.Equal("1", existingMatch.SourceMatchId);

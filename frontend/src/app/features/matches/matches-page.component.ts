@@ -156,7 +156,7 @@ interface MatchDateGroup {
 											</span>
 										} @else if (match.isBettingOpen) {
 											<span class="rounded-full bg-amber-50 px-3 py-1 font-medium text-amber-700">
-												Open until {{ match.bettingClosesAtUtc | date: "short" : "UTC" }} UTC
+											Open until {{ match.bettingClosesAtUtc | date: "short" }}
 											</span>
 										} @else {
 											<span class="rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-200">
@@ -174,8 +174,8 @@ interface MatchDateGroup {
 									</div>
 								</div>
 								<div class="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-700 dark:bg-slate-900 dark:text-slate-200">
-									<p class="font-medium">{{ match.startsAtUtc | date: "medium" : "UTC" }}</p>
-									<p class="mt-1 text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">UTC kickoff</p>
+									<p class="font-medium">{{ match.startsAtUtc | date: "medium" }}</p>
+									<p class="mt-1 text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Local kickoff</p>
 								</div>
 							</div>
 

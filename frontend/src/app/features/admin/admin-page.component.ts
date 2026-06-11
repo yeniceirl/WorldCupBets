@@ -106,7 +106,7 @@ import type { CreateUserInvitationRequest } from "./admin.models";
 										<div>
 											<p class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">{{ match.stage }}</p>
 											<h3 class="mt-1 font-bold text-slate-950 dark:text-white">{{ match.homeTeamName }} vs {{ match.awayTeamName }}</h3>
-											<p class="text-xs text-slate-500 dark:text-slate-400">Closed {{ match.bettingClosesAtUtc | date: "short" : "UTC" }} UTC</p>
+									<p class="text-xs text-slate-500 dark:text-slate-400">Closed {{ match.bettingClosesAtUtc | date: "short" }}</p>
 										</div>
 										<div class="flex flex-col gap-2 sm:flex-row">
 											<select #resultSelect class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-white" (change)="setSelectedResult(match.id, resultSelect.value)" [attr.data-testid]="'admin-result-select-' + match.id">

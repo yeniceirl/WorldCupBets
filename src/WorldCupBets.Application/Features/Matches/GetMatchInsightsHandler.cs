@@ -59,7 +59,9 @@ public sealed class GetMatchInsightsHandler
             return [];
         }
 
-        var groupStandings = snapshot.GroupStandings
+        var computedGroupStandings = ExternalFootballStandingsCalculator.Calculate(snapshot.Teams, snapshot.Matches);
+
+        var groupStandings = computedGroupStandings
             .Where(standing => string.Equals(standing.GroupName, team.GroupName, StringComparison.OrdinalIgnoreCase))
             .ToArray();
         if (groupStandings.Length == 0)

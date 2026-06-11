@@ -93,11 +93,10 @@ public sealed class GetMatchInsightsHandlerTests
                 new ExternalFootballTeamDto("t-jpn", "Japan", "JPN", "JP", "A", null)
             ],
             [],
-            [
-                new ExternalFootballGroupStandingDto("A", "t-arg", 3, 2, 1, 0, 5, 1, 4, 7),
-                new ExternalFootballGroupStandingDto("A", "t-jpn", 3, 1, 1, 1, 3, 3, 0, 4)
-            ],
             [],
+            [
+                new ExternalFootballMatchDto("1", "t-arg", "t-jpn", "Argentina", "Japan", null, null, "A", "1", "06/11/2026 13:00", "stadium-1", true, "finished", "group", 2, 0)
+            ],
             DateTime.UtcNow);
 
         var provider = new StubAiInsightsProvider(MatchInsightsResult.Unavailable);
@@ -117,12 +116,12 @@ public sealed class GetMatchInsightsHandlerTests
         Assert.Equal("A", prompt.GroupName);
 
         Assert.Equal(2, prompt.HomeTeamGroupStandings.Count);
-        Assert.Contains(prompt.HomeTeamGroupStandings, row => row.TeamName == "Argentina" && row.Points == 7);
-        Assert.Contains(prompt.HomeTeamGroupStandings, row => row.TeamName == "Japan" && row.Points == 4);
+        Assert.Contains(prompt.HomeTeamGroupStandings, row => row.TeamName == "Argentina" && row.Points == 3);
+        Assert.Contains(prompt.HomeTeamGroupStandings, row => row.TeamName == "Japan" && row.Points == 0);
 
         Assert.Equal(2, prompt.AwayTeamGroupStandings.Count);
-        Assert.Contains(prompt.AwayTeamGroupStandings, row => row.TeamName == "Argentina" && row.Points == 7);
-        Assert.Contains(prompt.AwayTeamGroupStandings, row => row.TeamName == "Japan" && row.Points == 4);
+        Assert.Contains(prompt.AwayTeamGroupStandings, row => row.TeamName == "Argentina" && row.Points == 3);
+        Assert.Contains(prompt.AwayTeamGroupStandings, row => row.TeamName == "Japan" && row.Points == 0);
     }
 
     private static ExternalFootballSnapshot EmptySnapshot()

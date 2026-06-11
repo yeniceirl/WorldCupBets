@@ -136,26 +136,47 @@ public sealed class ImportGroupStageFixturesHandler
             return null;
         }
 
-        return city switch
+        if (ContainsAny(city, "mexico city", "guadalajara", "zapopan"))
         {
-            "Mexico City" => TimeZoneInfo.FindSystemTimeZoneById("America/Mexico_City"),
-            "Guadalajara" => TimeZoneInfo.FindSystemTimeZoneById("America/Mexico_City"),
-            "Monterrey" => TimeZoneInfo.FindSystemTimeZoneById("America/Monterrey"),
-            "Arlington" => TimeZoneInfo.FindSystemTimeZoneById("America/Chicago"),
-            "Houston" => TimeZoneInfo.FindSystemTimeZoneById("America/Chicago"),
-            "Kansas City" => TimeZoneInfo.FindSystemTimeZoneById("America/Chicago"),
-            "Atlanta" => TimeZoneInfo.FindSystemTimeZoneById("America/New_York"),
-            "Boston" => TimeZoneInfo.FindSystemTimeZoneById("America/New_York"),
-            "East Rutherford" => TimeZoneInfo.FindSystemTimeZoneById("America/New_York"),
-            "Miami Gardens" => TimeZoneInfo.FindSystemTimeZoneById("America/New_York"),
-            "Philadelphia" => TimeZoneInfo.FindSystemTimeZoneById("America/New_York"),
-            "Toronto" => TimeZoneInfo.FindSystemTimeZoneById("America/Toronto"),
-            "Inglewood" => TimeZoneInfo.FindSystemTimeZoneById("America/Los_Angeles"),
-            "San Francisco Bay Area" => TimeZoneInfo.FindSystemTimeZoneById("America/Los_Angeles"),
-            "Seattle" => TimeZoneInfo.FindSystemTimeZoneById("America/Los_Angeles"),
-            "Vancouver" => TimeZoneInfo.FindSystemTimeZoneById("America/Vancouver"),
-            _ => null,
-        };
+            return TimeZoneInfo.FindSystemTimeZoneById("America/Mexico_City");
+        }
+
+        if (ContainsAny(city, "monterrey", "guadalupe"))
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById("America/Monterrey");
+        }
+
+        if (ContainsAny(city, "arlington", "dallas", "houston", "kansas city"))
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById("America/Chicago");
+        }
+
+        if (ContainsAny(city, "atlanta", "boston", "foxborough", "east rutherford", "new york/new jersey", "miami gardens", "miami", "philadelphia"))
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById("America/New_York");
+        }
+
+        if (ContainsAny(city, "toronto"))
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById("America/Toronto");
+        }
+
+        if (ContainsAny(city, "inglewood", "los angeles", "san francisco bay area", "santa clara", "seattle"))
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById("America/Los_Angeles");
+        }
+
+        if (ContainsAny(city, "vancouver"))
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById("America/Vancouver");
+        }
+
+        return null;
+    }
+
+    private static bool ContainsAny(string value, params string[] fragments)
+    {
+        return fragments.Any(fragment => value.Contains(fragment, StringComparison.OrdinalIgnoreCase));
     }
 
     private static string GetFixtureKey(Match match)

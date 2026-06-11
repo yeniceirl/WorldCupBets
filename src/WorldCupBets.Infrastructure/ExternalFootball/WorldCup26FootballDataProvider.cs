@@ -13,16 +13,20 @@ public sealed class WorldCup26FootballDataProvider(HttpClient httpClient, Extern
         var syncedAtUtc = DateTime.UtcNow;
         var teamsTask = httpClient.GetFromJsonAsync<TeamsResponse>("/get/teams", cancellationToken);
         var stadiumsTask = httpClient.GetFromJsonAsync<StadiumsResponse>("/get/stadiums", cancellationToken);
-        var groupsTask = httpClient.GetFromJsonAsync<GroupsResponse>("/get/groups", cancellationToken);
         var gamesTask = httpClient.GetFromJsonAsync<GamesResponse>("/get/games", cancellationToken);
 
-        await Task.WhenAll(teamsTask, stadiumsTask, groupsTask, gamesTask);
+        await Task.WhenAll(teamsTask, stadiumsTask, gamesTask);
+
+        var teams = (teamsTask.Result?.Teams ?? []).Select(ToDto).ToArray();
+        var stadiums = (stadiumsTask.Result?.Stadiums ?? []).Select(ToDto).ToArray();
+        var matches = (gamesTask.Result?.Games ?? []).Select(ToDto).ToArray();
+        var groupStandings = ExternalFootballStandingsCalculator.Calculate(teams, matches);
 
         return new ExternalFootballSnapshot(
-            (teamsTask.Result?.Teams ?? []).Select(ToDto).ToArray(),
-            (stadiumsTask.Result?.Stadiums ?? []).Select(ToDto).ToArray(),
-            (groupsTask.Result?.Groups ?? []).SelectMany(ToDtos).ToArray(),
-            (gamesTask.Result?.Games ?? []).Select(ToDto).ToArray(),
+            teams,
+            stadiums,
+            groupStandings,
+            matches,
             syncedAtUtc);
     }
 
@@ -47,21 +51,6 @@ public sealed class WorldCup26FootballDataProvider(HttpClient httpClient, Extern
             stadium.CountryEn,
             stadium.Capacity,
             stadium.Region);
-    }
-
-    private static IEnumerable<ExternalFootballGroupStandingDto> ToDtos(WorldCup26Group group)
-    {
-        return (group.Teams ?? []).Select(team => new ExternalFootballGroupStandingDto(
-            group.Name ?? string.Empty,
-            team.TeamId ?? string.Empty,
-            ParseInt(team.MatchesPlayed),
-            ParseInt(team.Wins),
-            ParseInt(team.Draws),
-            ParseInt(team.Losses),
-            ParseInt(team.GoalsFor),
-            ParseInt(team.GoalsAgainst),
-            ParseInt(team.GoalDifference),
-            ParseInt(team.Points)));
     }
 
     private static ExternalFootballMatchDto ToDto(WorldCup26Game game)
@@ -104,8 +93,6 @@ public sealed class WorldCup26FootballDataProvider(HttpClient httpClient, Extern
 
     private sealed record StadiumsResponse([property: JsonPropertyName("stadiums")] IReadOnlyList<WorldCup26Stadium>? Stadiums);
 
-    private sealed record GroupsResponse([property: JsonPropertyName("groups")] IReadOnlyList<WorldCup26Group>? Groups);
-
     private sealed record GamesResponse([property: JsonPropertyName("games")] IReadOnlyList<WorldCup26Game>? Games);
 
     private sealed record WorldCup26Team(
@@ -124,21 +111,6 @@ public sealed class WorldCup26FootballDataProvider(HttpClient httpClient, Extern
         [property: JsonPropertyName("country_en")] string? CountryEn,
         [property: JsonPropertyName("capacity")] int? Capacity,
         [property: JsonPropertyName("region")] string? Region);
-
-    private sealed record WorldCup26Group(
-        [property: JsonPropertyName("name")] string? Name,
-        [property: JsonPropertyName("teams")] IReadOnlyList<WorldCup26GroupTeam>? Teams);
-
-    private sealed record WorldCup26GroupTeam(
-        [property: JsonPropertyName("team_id")] string? TeamId,
-        [property: JsonPropertyName("mp")] string? MatchesPlayed,
-        [property: JsonPropertyName("w")] string? Wins,
-        [property: JsonPropertyName("d")] string? Draws,
-        [property: JsonPropertyName("l")] string? Losses,
-        [property: JsonPropertyName("gf")] string? GoalsFor,
-        [property: JsonPropertyName("ga")] string? GoalsAgainst,
-        [property: JsonPropertyName("gd")] string? GoalDifference,
-        [property: JsonPropertyName("pts")] string? Points);
 
     private sealed record WorldCup26Game(
         [property: JsonPropertyName("id")] string? Id,

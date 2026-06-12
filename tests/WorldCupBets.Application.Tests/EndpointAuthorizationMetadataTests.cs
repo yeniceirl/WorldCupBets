@@ -21,6 +21,8 @@ public sealed class EndpointAuthorizationMetadataTests
         "/api/challenges/{id:int}/settlement",
         "/api/challenges/{id:int}/void",
         "/api/challenges/{id:int}/expire",
+        "/api/admin/audit/balances",
+        "/api/admin/audit/users/{userId:int}",
         "/api/football-data/sync",
         "/api/football-data/players/sync",
         "/api/football-data/fixtures/group-stage/import"

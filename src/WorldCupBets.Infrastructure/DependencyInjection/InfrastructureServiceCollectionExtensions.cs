@@ -45,6 +45,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IUserInvitationRepository, UserInvitationRepository>();
         services.AddScoped<IRoleRepository, RoleRepository>();
+        services.AddScoped<IAuditReadRepository, AuditReadRepository>();
         services.AddScoped<IExternalFootballDataRepository, ExternalFootballDataRepository>();
         services.AddScoped<IExternalFootballPlayerRepository, ExternalFootballPlayerRepository>();
         return services;

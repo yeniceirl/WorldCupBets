@@ -42,6 +42,40 @@ public static class AdminEndpoints
         .Produces(StatusCodes.Status401Unauthorized)
         .Produces(StatusCodes.Status403Forbidden);
 
+        group.MapGet("/audit/balances", [Authorize(Policy = "Admin")] async (
+            IMessageBus messageBus,
+            CancellationToken cancellationToken) =>
+        {
+            var result = await messageBus.InvokeAsync<AuditBalanceSummaryDto>(
+                new GetAuditBalanceSummaryQuery(),
+                cancellationToken);
+
+            return Results.Ok(result);
+        })
+        .WithName("GetAuditBalanceSummary")
+        .WithSummary("Get the admin derived current-state balance summary for all users.")
+        .Produces<AuditBalanceSummaryDto>(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status401Unauthorized)
+        .Produces(StatusCodes.Status403Forbidden);
+
+        group.MapGet("/audit/users/{userId:int}", [Authorize(Policy = "Admin")] async (
+            int userId,
+            IMessageBus messageBus,
+            CancellationToken cancellationToken) =>
+        {
+            var result = await messageBus.InvokeAsync<AuditUserSubledgerDto?>(
+                new GetAuditUserSubledgerQuery(userId),
+                cancellationToken);
+
+            return result is null ? Results.NotFound() : Results.Ok(result);
+        })
+        .WithName("GetAuditUserSubledger")
+        .WithSummary("Get the admin derived current-state audit subledger for one user.")
+        .Produces<AuditUserSubledgerDto>(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status401Unauthorized)
+        .Produces(StatusCodes.Status403Forbidden)
+        .Produces(StatusCodes.Status404NotFound);
+
         return group;
     }
 }

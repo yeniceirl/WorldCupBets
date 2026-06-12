@@ -40,6 +40,16 @@ public sealed class Match : Entity
 
     public MatchBetSelection? OfficialResult { get; private set; }
 
+    public int? OfficialHomeScore { get; private set; }
+
+    public int? OfficialAwayScore { get; private set; }
+
+    public string? OfficialDataProvider { get; private set; }
+
+    public string? OfficialDataSourceReference { get; private set; }
+
+    public DateTime? OfficialDataVerifiedAtUtc { get; private set; }
+
     public DateTime? SettledAtUtc { get; private set; }
 
     public int Version { get; private set; }
@@ -154,6 +164,30 @@ public sealed class Match : Entity
         }
 
         OfficialResult = officialResult;
+    }
+
+    public void RecordOfficialData(
+        int homeScore,
+        int awayScore,
+        string officialDataProvider,
+        string officialDataSourceReference,
+        DateTime verifiedAtUtc)
+    {
+        if (string.IsNullOrWhiteSpace(officialDataProvider))
+        {
+            throw new ArgumentException("Official data provider is required.", nameof(officialDataProvider));
+        }
+
+        if (string.IsNullOrWhiteSpace(officialDataSourceReference))
+        {
+            throw new ArgumentException("Official data source reference is required.", nameof(officialDataSourceReference));
+        }
+
+        OfficialHomeScore = homeScore;
+        OfficialAwayScore = awayScore;
+        OfficialDataProvider = officialDataProvider;
+        OfficialDataSourceReference = officialDataSourceReference;
+        OfficialDataVerifiedAtUtc = verifiedAtUtc;
     }
 
     public void MarkSettled(DateTime settledAtUtc)

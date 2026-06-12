@@ -49,6 +49,33 @@ public sealed class MatchRulesTests
     }
 
     [Fact]
+    public void RecordOfficialData_Stores_Verified_Score_Metadata()
+    {
+        var match = Match.Create(MatchPhase.GroupStage, "Argentina", "Japan", DateTime.UtcNow.AddHours(-1), "MetLife Stadium");
+        var verifiedAtUtc = new DateTime(2026, 6, 14, 20, 5, 0, DateTimeKind.Utc);
+
+        match.RecordOfficialData(2, 1, "api-sports", "fixture-9001", verifiedAtUtc);
+
+        Assert.Equal(2, match.OfficialHomeScore);
+        Assert.Equal(1, match.OfficialAwayScore);
+        Assert.Equal("api-sports", match.OfficialDataProvider);
+        Assert.Equal("fixture-9001", match.OfficialDataSourceReference);
+        Assert.Equal(verifiedAtUtc, match.OfficialDataVerifiedAtUtc);
+    }
+
+    [Fact]
+    public void RecordOfficialData_Requires_Provider_And_SourceReference()
+    {
+        var match = Match.Create(MatchPhase.GroupStage, "Argentina", "Japan", DateTime.UtcNow.AddHours(-1), "MetLife Stadium");
+
+        Assert.Throws<ArgumentException>(() =>
+            match.RecordOfficialData(2, 1, string.Empty, "fixture-9001", DateTime.UtcNow));
+
+        Assert.Throws<ArgumentException>(() =>
+            match.RecordOfficialData(2, 1, "api-sports", string.Empty, DateTime.UtcNow));
+    }
+
+    [Fact]
     public void CreditBalance_Increases_Current_Balance()
     {
         var user = User.Create("google-sub", "user@example.com", "User");

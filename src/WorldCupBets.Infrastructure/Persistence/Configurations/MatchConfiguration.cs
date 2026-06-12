@@ -26,6 +26,11 @@ public sealed class MatchConfiguration : IEntityTypeConfiguration<Match>
         builder.Property(match => match.OfficialResult)
             .HasConversion<string>()
             .HasMaxLength(16);
+        builder.Property(match => match.OfficialHomeScore);
+        builder.Property(match => match.OfficialAwayScore);
+        builder.Property(match => match.OfficialDataProvider).HasMaxLength(40);
+        builder.Property(match => match.OfficialDataSourceReference).HasMaxLength(80);
+        builder.Property(match => match.OfficialDataVerifiedAtUtc);
         builder.Property(match => match.SettledAtUtc);
         builder.Property(match => match.Version).IsConcurrencyToken().IsRequired();
         builder.HasIndex(match => new { match.Phase, match.GroupName, match.HomeTeamName, match.AwayTeamName });
@@ -44,6 +49,11 @@ public sealed class MatchConfiguration : IEntityTypeConfiguration<Match>
                 SourceMatchId = (string?)null,
                 SourceSyncedAtUtc = (DateTime?)null,
                 OfficialResult = (MatchBetSelection?)null,
+                OfficialHomeScore = (int?)null,
+                OfficialAwayScore = (int?)null,
+                OfficialDataProvider = (string?)null,
+                OfficialDataSourceReference = (string?)null,
+                OfficialDataVerifiedAtUtc = (DateTime?)null,
                 SettledAtUtc = (DateTime?)null,
                 Version = 0
             },
@@ -60,6 +70,11 @@ public sealed class MatchConfiguration : IEntityTypeConfiguration<Match>
                 SourceMatchId = (string?)null,
                 SourceSyncedAtUtc = (DateTime?)null,
                 OfficialResult = (MatchBetSelection?)null,
+                OfficialHomeScore = (int?)null,
+                OfficialAwayScore = (int?)null,
+                OfficialDataProvider = (string?)null,
+                OfficialDataSourceReference = (string?)null,
+                OfficialDataVerifiedAtUtc = (DateTime?)null,
                 SettledAtUtc = (DateTime?)null,
                 Version = 0
             },
@@ -76,6 +91,11 @@ public sealed class MatchConfiguration : IEntityTypeConfiguration<Match>
                 SourceMatchId = (string?)null,
                 SourceSyncedAtUtc = (DateTime?)null,
                 OfficialResult = (MatchBetSelection?)null,
+                OfficialHomeScore = (int?)null,
+                OfficialAwayScore = (int?)null,
+                OfficialDataProvider = (string?)null,
+                OfficialDataSourceReference = (string?)null,
+                OfficialDataVerifiedAtUtc = (DateTime?)null,
                 SettledAtUtc = (DateTime?)null,
                 Version = 0
             });

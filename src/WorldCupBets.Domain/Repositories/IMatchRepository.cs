@@ -14,6 +14,8 @@ public interface IMatchRepository
 
     Task<Match?> GetByIdForSettlementAsync(int matchId, CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<Match>> ListPendingResultSettlementAsync(DateTime nowUtc, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<string>> ListTeamNamesAsync(CancellationToken cancellationToken = default);
 
     Task<DateTime?> GetChampionBettingClosesAtUtcAsync(CancellationToken cancellationToken = default);

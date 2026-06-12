@@ -241,6 +241,11 @@ public sealed class PlaceMatchBetHandlerTests
             return Task.FromResult(matches.SingleOrDefault(match => match.Id == matchId));
         }
 
+        public Task<IReadOnlyList<Match>> ListPendingResultSettlementAsync(DateTime nowUtc, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<Match>>(matches.Where(match => match.StartsAtUtc <= nowUtc).ToArray());
+        }
+
         public Task AddAsync(Match match, CancellationToken cancellationToken = default)
         {
             throw new NotSupportedException();

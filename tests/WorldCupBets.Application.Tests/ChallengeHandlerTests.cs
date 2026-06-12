@@ -485,6 +485,9 @@ public sealed class ChallengeHandlerTests
 
         public Task<Match?> GetByIdForSettlementAsync(int matchId, CancellationToken cancellationToken = default) => Task.FromResult(matches.SingleOrDefault(match => match.Id == matchId));
 
+        public Task<IReadOnlyList<Match>> ListPendingResultSettlementAsync(DateTime nowUtc, CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<Match>>(matches.Where(match => match.StartsAtUtc <= nowUtc).ToArray());
+
         public Task<IReadOnlyList<string>> ListTeamNamesAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<string>>([]);
 
         public Task<DateTime?> GetChampionBettingClosesAtUtcAsync(CancellationToken cancellationToken = default) => Task.FromResult<DateTime?>(null);

@@ -72,6 +72,16 @@ public sealed class MatchRepository(AppDbContext dbContext) : IMatchRepository
         return dbContext.Matches.SingleOrDefaultAsync(match => match.Id == matchId, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Match>> ListPendingResultSettlementAsync(DateTime nowUtc, CancellationToken cancellationToken = default)
+    {
+        return await dbContext.Matches
+            .Where(match => !match.SettledAtUtc.HasValue)
+            .Where(match => match.SourceProvider == "worldcup26" && match.SourceMatchId != null)
+            .Where(match => match.StartsAtUtc <= nowUtc)
+            .OrderBy(match => match.StartsAtUtc)
+            .ToArrayAsync(cancellationToken);
+    }
+
     public async Task AddAsync(Match match, CancellationToken cancellationToken = default)
     {
         await dbContext.Matches.AddAsync(match, cancellationToken);

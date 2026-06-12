@@ -280,6 +280,11 @@ public sealed class GetLeaderboardHandlerTests
             return Task.FromResult(matches.SingleOrDefault(match => match.Id == matchId));
         }
 
+        public Task<IReadOnlyList<Match>> ListPendingResultSettlementAsync(DateTime nowUtc, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<Match>>(matches.Where(match => match.StartsAtUtc <= nowUtc).ToArray());
+        }
+
         public Task<IReadOnlyList<string>> ListTeamNamesAsync(CancellationToken cancellationToken = default)
         {
             return Task.FromResult<IReadOnlyList<string>>(matches.SelectMany(match => new[] { match.HomeTeamName, match.AwayTeamName }).Distinct().ToArray());

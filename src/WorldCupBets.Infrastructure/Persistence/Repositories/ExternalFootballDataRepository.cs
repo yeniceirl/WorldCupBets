@@ -51,4 +51,5 @@ public sealed class ExternalFootballDataRepository(AppDbContext dbContext) : IEx
             matches.Select(match => new ExternalFootballMatchDto(match.ExternalId, match.HomeTeamExternalId, match.AwayTeamExternalId, match.HomeTeamNameEn, match.AwayTeamNameEn, match.HomeTeamLabel, match.AwayTeamLabel, match.GroupName, match.Matchday, match.LocalDateText, match.StadiumExternalId, match.IsFinished, match.TimeElapsed, match.StageType, match.HomeScore, match.AwayScore)).ToArray(),
             syncedAtUtc);
     }
+
 }

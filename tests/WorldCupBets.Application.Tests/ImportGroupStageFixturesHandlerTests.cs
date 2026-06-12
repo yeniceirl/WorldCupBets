@@ -139,6 +139,7 @@ public sealed class ImportGroupStageFixturesHandlerTests
         {
             return Task.FromResult<ExternalFootballSnapshot?>(snapshot);
         }
+
     }
 
     private static void SetEntityId(Entity entity, int id)
@@ -187,6 +188,11 @@ public sealed class ImportGroupStageFixturesHandlerTests
         public Task<Match?> GetByIdForSettlementAsync(int matchId, CancellationToken cancellationToken = default)
         {
             throw new NotSupportedException();
+        }
+
+        public Task<IReadOnlyList<Match>> ListPendingResultSettlementAsync(DateTime nowUtc, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<Match>>(Matches.Where(match => match.StartsAtUtc <= nowUtc).ToArray());
         }
 
         public Task<IReadOnlyList<string>> ListTeamNamesAsync(CancellationToken cancellationToken = default)

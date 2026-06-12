@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using WorldCupBets.Application.Abstractions;
+using WorldCupBets.Application.Features.Matches;
 using WorldCupBets.Application.Features.FootballData;
 using WorldCupBets.Domain.Repositories;
 using WorldCupBets.Infrastructure.AiInsights;
@@ -72,10 +73,15 @@ public static class InfrastructureServiceCollectionExtensions
                 ? new HashSet<string>(includedTeamNames, StringComparer.OrdinalIgnoreCase)
                 : new HashSet<string>(ApiSportsFootballOptions.DefaultIncludedTeamNames, StringComparer.OrdinalIgnoreCase),
         };
+        var matchResultSyncSection = configuration.GetSection("MatchResultSync");
+        var matchResultSyncOptions = new MatchResultSyncOptions(
+            Enabled: !bool.TryParse(matchResultSyncSection["Enabled"], out var enabled) || enabled,
+            PollIntervalMinutes: int.TryParse(matchResultSyncSection["PollIntervalMinutes"], out var pollIntervalMinutes) ? pollIntervalMinutes : 5);
 
         services.AddSingleton(options);
         services.AddSingleton(apiSportsOptions);
         services.AddSingleton(new ApiSportsFootballSyncOptions(apiSportsOptions.ApiKey, apiSportsOptions.IncludedTeamNames));
+        services.AddSingleton(matchResultSyncOptions);
         services.AddSingleton<IFootballDataProvider>(serviceProvider =>
         {
             var httpClient = new HttpClient
@@ -98,6 +104,10 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IPlayerSquadProvider>(_ => new ApiSportsPlayerSquadProvider(
             new HttpClient { BaseAddress = new Uri(apiSportsOptions.BaseUrl) },
             apiSportsOptions));
+        services.AddScoped<IOfficialMatchResultProvider>(_ => new ApiSportsOfficialMatchResultProvider(
+            new HttpClient { BaseAddress = new Uri(apiSportsOptions.BaseUrl) },
+            apiSportsOptions));
+        services.AddHostedService<MatchResultSyncBackgroundService>();
 
         return services;
     }

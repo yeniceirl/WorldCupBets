@@ -163,6 +163,7 @@ public sealed class GetMatchInsightsHandlerTests
         {
             return Task.FromResult(snapshot);
         }
+
     }
 
     private sealed class StubMatchRepository(params Match[] matches) : IMatchRepository
@@ -207,6 +208,11 @@ public sealed class GetMatchInsightsHandlerTests
         public Task<Match?> GetByIdForSettlementAsync(int matchId, CancellationToken cancellationToken = default)
         {
             return Task.FromResult(matches.SingleOrDefault(match => match.Id == matchId));
+        }
+
+        public Task<IReadOnlyList<Match>> ListPendingResultSettlementAsync(DateTime nowUtc, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<Match>>(matches.Where(match => match.StartsAtUtc <= nowUtc).ToArray());
         }
 
         public Task AddAsync(Match match, CancellationToken cancellationToken = default)

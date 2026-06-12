@@ -152,6 +152,11 @@ public sealed class PlaceSpecialPlayerBetHandlerTests
             throw new NotSupportedException();
         }
 
+        public Task<IReadOnlyList<Match>> ListPendingResultSettlementAsync(DateTime nowUtc, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<Match>>([]);
+        }
+
         public Task<IReadOnlyList<Match>> ListAsync(CancellationToken cancellationToken = default)
         {
             throw new NotSupportedException();

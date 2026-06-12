@@ -21,11 +21,15 @@ public sealed class EndpointAuthorizationMetadataTests
         "/api/challenges/{id:int}/settlement",
         "/api/challenges/{id:int}/void",
         "/api/challenges/{id:int}/expire",
-        "/api/admin/audit/balances",
-        "/api/admin/audit/users/{userId:int}",
         "/api/football-data/sync",
         "/api/football-data/players/sync",
         "/api/football-data/fixtures/group-stage/import"
+    ];
+
+    private static readonly string[] BettorRoutePatterns =
+    [
+        "/api/admin/audit/balances",
+        "/api/admin/audit/users/{userId:int}"
     ];
 
     private static readonly string[] AnonymousApiRoutePatterns =
@@ -47,6 +51,22 @@ public sealed class EndpointAuthorizationMetadataTests
                 endpointsByRoute.TryGetValue(routePattern, out var endpoints),
                 $"Endpoint '{routePattern}' was not mapped. Available routes: {string.Join(", ", endpointsByRoute.Keys.OrderBy(route => route, StringComparer.Ordinal))}");
             Assert.Contains(endpoints, endpoint => endpoint.AuthorizeData.Any(authorizeData => string.Equals(authorizeData.Policy, "Admin", StringComparison.Ordinal)));
+        }
+    }
+
+    [Fact]
+    public async Task Audit_Endpoints_Require_Bettor_Policy()
+    {
+        var endpointsByRoute = (await CreateApiEndpointsAsync())
+            .GroupBy(endpoint => endpoint.RoutePattern, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.Ordinal);
+
+        foreach (var routePattern in BettorRoutePatterns)
+        {
+            Assert.True(
+                endpointsByRoute.TryGetValue(routePattern, out var endpoints),
+                $"Endpoint '{routePattern}' was not mapped. Available routes: {string.Join(", ", endpointsByRoute.Keys.OrderBy(route => route, StringComparer.Ordinal))}");
+            Assert.Contains(endpoints, endpoint => endpoint.AuthorizeData.Any(authorizeData => string.Equals(authorizeData.Policy, "Bettor", StringComparison.Ordinal)));
         }
     }
 

@@ -57,6 +57,14 @@ export const appRoutes: Routes = [
 			),
 	},
 	{
+		path: "audit",
+		canActivate: [authGuard],
+		loadComponent: () =>
+			import("./features/admin/audit-page.component").then(
+				(m) => m.AuditPageComponent,
+			),
+	},
+	{
 		path: "admin",
 		canActivate: [authGuard],
 		loadComponent: () =>

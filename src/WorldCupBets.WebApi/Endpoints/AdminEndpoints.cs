@@ -42,7 +42,7 @@ public static class AdminEndpoints
         .Produces(StatusCodes.Status401Unauthorized)
         .Produces(StatusCodes.Status403Forbidden);
 
-        group.MapGet("/audit/balances", [Authorize(Policy = "Admin")] async (
+        group.MapGet("/audit/balances", [Authorize(Policy = "Bettor")] async (
             IMessageBus messageBus,
             CancellationToken cancellationToken) =>
         {
@@ -58,7 +58,7 @@ public static class AdminEndpoints
         .Produces(StatusCodes.Status401Unauthorized)
         .Produces(StatusCodes.Status403Forbidden);
 
-        group.MapGet("/audit/users/{userId:int}", [Authorize(Policy = "Admin")] async (
+        group.MapGet("/audit/users/{userId:int}", [Authorize(Policy = "Bettor")] async (
             int userId,
             IMessageBus messageBus,
             CancellationToken cancellationToken) =>

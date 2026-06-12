@@ -95,6 +95,31 @@ public sealed class AdminAuditReportHandlerTests
         Assert.Equal("Waiting for tournament special settlement", special.PendingReason);
     }
 
+    [Fact]
+    public async Task Handle_Subledger_Uses_Full_Match_Pool_For_Winner_Payouts()
+    {
+        var repository = new StubAuditReadRepository(
+            users: [new AuditUserReadModel(7, "Ada", "ada@example.com", 1015m, 0, 0m)],
+            matchBets:
+            [
+                new AuditMatchBetReadModel(10, 7, MatchBetSelection.Draw, 5m, new DateTime(2026, 6, 11, 17, 0, 0, DateTimeKind.Utc), 100, "Canada", "Bosnia and Herzegovina", new DateTime(2026, 6, 11, 18, 0, 0, DateTimeKind.Utc), MatchBetSelection.Draw, new DateTime(2026, 6, 11, 20, 0, 0, DateTimeKind.Utc)),
+                new AuditMatchBetReadModel(11, 8, MatchBetSelection.Home, 5m, new DateTime(2026, 6, 11, 17, 0, 0, DateTimeKind.Utc), 100, "Canada", "Bosnia and Herzegovina", new DateTime(2026, 6, 11, 18, 0, 0, DateTimeKind.Utc), MatchBetSelection.Draw, new DateTime(2026, 6, 11, 20, 0, 0, DateTimeKind.Utc)),
+                new AuditMatchBetReadModel(12, 9, MatchBetSelection.Away, 5m, new DateTime(2026, 6, 11, 17, 0, 0, DateTimeKind.Utc), 100, "Canada", "Bosnia and Herzegovina", new DateTime(2026, 6, 11, 18, 0, 0, DateTimeKind.Utc), MatchBetSelection.Draw, new DateTime(2026, 6, 11, 20, 0, 0, DateTimeKind.Utc))
+            ],
+            challengePositions: [],
+            tournamentPicks: [],
+            settlement: null);
+
+        var result = await GetAuditUserSubledgerHandler.Handle(new GetAuditUserSubledgerQuery(7), repository, CancellationToken.None);
+
+        Assert.NotNull(result);
+        var match = Assert.Single(result!.Items, item => item.SourceType == "match_bet");
+        Assert.Equal("won", match.Status);
+        Assert.Equal(15m, match.CreditAmountCc);
+        Assert.Equal(0m, match.LossAmountCc);
+        Assert.Equal(0m, match.PendingAmountCc);
+    }
+
     private sealed class StubAuditReadRepository(
         IReadOnlyList<AuditUserReadModel> users,
         IReadOnlyList<AuditMatchBetReadModel> matchBets,

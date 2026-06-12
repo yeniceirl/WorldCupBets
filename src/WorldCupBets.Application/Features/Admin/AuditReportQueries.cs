@@ -44,12 +44,15 @@ public sealed class GetAuditUserSubledgerHandler
             return null;
         }
 
-        var matchBets = await auditReadRepository.ListMatchBetsAsync(query.UserId, cancellationToken);
+        var matchBets = await auditReadRepository.ListMatchBetsAsync(null, cancellationToken);
         var challengePositions = await auditReadRepository.ListChallengePositionsAsync(query.UserId, cancellationToken);
         var tournamentPicks = await auditReadRepository.ListTournamentPicksAsync(query.UserId, cancellationToken);
         var settlement = await auditReadRepository.GetTournamentSettlementAsync(cancellationToken);
 
         var ledgerItems = AuditReportCalculator.BuildLedgerItems(matchBets, challengePositions, tournamentPicks, settlement)
+            .Where(item =>
+                item.SourceType != "match_bet"
+                || matchBets.Any(matchBet => matchBet.UserId == query.UserId && matchBet.MatchBetId == item.SourceId))
             .OrderByDescending(item => item.PlacedAtUtc)
             .ThenBy(item => item.SourceType, StringComparer.OrdinalIgnoreCase)
             .ToArray();

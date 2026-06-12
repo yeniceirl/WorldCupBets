@@ -13,7 +13,7 @@ import type {
 	MatchListItem,
 } from "./matches.models";
 
-type MatchDayFilter = "Today" | "Tomorrow" | "All";
+type MatchDayFilter = "Next" | "All";
 
 interface MatchDateGroup {
 	dateKey: string;
@@ -222,7 +222,7 @@ interface MatchDateGroup {
 								</div>
 							}
 
-							@if (selectedMatchFilter() === "Today") {
+							@if (selectedMatchFilter() === "Next") {
 								<app-match-insight-card [matchId]="match.id" />
 							}
 
@@ -236,7 +236,7 @@ export class MatchesPageComponent {
 	private readonly matchesService = inject(MatchesService);
 	protected readonly formatCopaCoin = formatCopaCoin;
 	readonly betSelections: ReadonlyArray<MatchBetSelection> = ["Home", "Draw", "Away"];
-	readonly matchFilters: ReadonlyArray<MatchDayFilter> = ["Today", "Tomorrow", "All"];
+	readonly matchFilters: ReadonlyArray<MatchDayFilter> = ["Next", "All"];
 
 	readonly userSummary = signal<CurrentUserSummary | null>(null);
 	readonly footballData = signal<FootballDataSnapshot | null>(null);
@@ -244,7 +244,7 @@ export class MatchesPageComponent {
 	readonly isLoading = signal(true);
 	readonly errorMessage = signal("");
 	readonly successMessage = signal("");
-	readonly selectedMatchFilter = signal<MatchDayFilter>("Today");
+	readonly selectedMatchFilter = signal<MatchDayFilter>("Next");
 	readonly submittingMatchId = signal<number | null>(null);
 	readonly showDashboard = computed(() => !this.isLoading() && !!this.userSummary());
 	readonly filteredMatches = computed(() => this.filterMatches(this.selectedMatchFilter()));
@@ -319,7 +319,7 @@ export class MatchesPageComponent {
 	}
 
 	getMatchFilterLabel(filter: MatchDayFilter): string {
-		return filter === "Today" ? "Next matchday" : filter === "Tomorrow" ? "Following day" : "All";
+		return filter === "Next" ? "Next matchday" : "All";
 	}
 
 	getMatchFilterCount(filter: MatchDayFilter): number {
@@ -417,7 +417,7 @@ export class MatchesPageComponent {
 			return this.matches();
 		}
 
-		const targetDateKey = this.getRelativeMatchDateKey(filter === "Today" ? 0 : 1);
+		const targetDateKey = this.getUpcomingMatchDateKeys()[0] ?? "";
 		if (!targetDateKey) {
 			return [];
 		}
@@ -439,13 +439,14 @@ export class MatchesPageComponent {
 		}));
 	}
 
-	private getRelativeMatchDateKey(offsetDays: number): string {
-		const dateKeys = this.matches()
+	private getUpcomingMatchDateKeys(): ReadonlyArray<string> {
+		const todayKey = this.formatDateKey(new Date());
+
+		return this.matches()
 			.map((match) => this.getMatchDateKey(match))
+			.filter((dateKey) => dateKey >= todayKey)
 			.filter((dateKey, index, dateKeys) => dateKeys.indexOf(dateKey) === index)
 			.sort();
-
-		return dateKeys[offsetDays] ?? "";
 	}
 
 	private getMatchDateKey(match: MatchListItem): string {

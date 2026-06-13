@@ -1,5 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 
+const futureMatchStartsAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+const futureTournamentBettingClosesAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+
 const userSummary = {
 	id: 1,
 	displayName: "Ada Lovelace",
@@ -12,7 +15,7 @@ const userSummary = {
 const championMarket = {
 	teamOptions: ["Argentina", "Japan"],
 	stakeAmountCc: 50,
-	bettingClosesAtUtc: "2026-06-28T18:00:00Z",
+	bettingClosesAtUtc: futureTournamentBettingClosesAt,
 	isBettingOpen: true,
 	isSettled: false,
 	currentUserChampionTeamName: null,
@@ -20,7 +23,7 @@ const championMarket = {
 
 const specialMarket = {
 	stakeAmountCc: 50,
-	bettingClosesAtUtc: "2026-06-28T18:00:00Z",
+	bettingClosesAtUtc: futureTournamentBettingClosesAt,
 	isBettingOpen: true,
 	playerBets: [],
 };
@@ -32,8 +35,8 @@ const matches = [
 		homeTeamName: "Argentina",
 		awayTeamName: "Japan",
 		groupName: "J",
-		startsAtUtc: "2026-06-12T18:00:00Z",
-		bettingClosesAtUtc: "2026-06-12T18:00:00Z",
+		startsAtUtc: futureMatchStartsAt,
+		bettingClosesAtUtc: futureMatchStartsAt,
 		isBettingOpen: true,
 		stakeAmountCc: 5,
 		venue: "MetLife Stadium",
